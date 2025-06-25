@@ -1,0 +1,8 @@
+opencv-python
+numpy<2.0
+Pillow
+ImageHash
+pandas
+easyocr
+torch
+torchvision
