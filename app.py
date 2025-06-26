@@ -9,10 +9,11 @@ import pandas as pd
 import easyocr
 
 import img_helper
-import twitch_helper
+#import twitch_helper
 
-twitch_vod_url = 'https://www.twitch.tv/videos/2495517780' # appesax (random), 1 hr long, good quality, no overlap
-#twitch_vod_url = 'https://www.twitch.tv/videos/2494835110' # zbra on patch day
+#twitch_vod_url = 'https://www.twitch.tv/videos/2495517780' # appesax (random), 1 hr long, good quality, no overlap
+twitch_vod_url = 'https://www.twitch.tv/videos/2494835110' # zbra on patch day
+#twitch_vod_url = 'https://www.twitch.tv/videos/2495781156' # vega, sub only vod (doesn't work)
 template_dir = 'templates'
 output_dir = 'matches' # for saving full images
 skip_seconds_on_match = 60 * 8
