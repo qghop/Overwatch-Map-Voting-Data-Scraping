@@ -17,24 +17,27 @@ output_dir = 'matches' # for saving full images
 skip_seconds_on_match = 60 * 8
 coarse_hash_threshold = 10 # TODO might need changing based on stream quality(?), overlays(?)
 fine_hash_threshold = 5
-default_frame_interval = 8 # TODO might miss extremely fast votes
+default_frame_interval = 10 # TODO might miss extremely fast votes
 fine_grained_frame_interval = 0.5
 frames_to_fine_grain_search = 23 / fine_grained_frame_interval
 
 # regions for cropping before OCR
+ref_w = 1920
+ref_h = 1080
 regions = {
-    'map1_raw_text': (600, 640, 400, 685),
-    'votes1_raw_text': (756, 787, 476, 578),
-    'map2_raw_text': (600, 640, 810, 1100),
-    'votes2_raw_text': (756, 787, 909, 1007),
-    'map3_raw_text': (600, 640, 1230, 1540),
-    'votes3_raw_text': (756, 787, 1339, 1448),
+    'map1_raw_text': (600 / ref_h, 640 / ref_h, 400 / ref_w, 685 / ref_w),
+    'votes1_raw_text': (756 / ref_h, 787 / ref_h, 476 / ref_w, 578 / ref_w),
+    'map2_raw_text': (600 / ref_h, 640 / ref_h, 810 / ref_w, 1100 / ref_w),
+    'votes2_raw_text': (756 / ref_h, 787 / ref_h, 909 / ref_w, 1007 / ref_w),
+    'map3_raw_text': (600 / ref_h, 640 / ref_h, 1230 / ref_w, 1540 / ref_w),
+    'votes3_raw_text': (756 / ref_h, 787 / ref_h, 1339 / ref_w, 1448 / ref_w),
 }
 
 results_df = pd.DataFrame()
 reader = easyocr.Reader(['en'])
 os.makedirs(output_dir, exist_ok=True) # for saving full images
 template_hashes = helper.load_template_hashes(template_dir)
+
 
 # Find all frames that have map vote data
 def process_frames(m3u8_url):
@@ -148,6 +151,7 @@ def process_frames(m3u8_url):
         
     return found_frames
 
+
 # Get usable url
 m3u8_url = helper.get_m3u8_url(twitch_vod_url)
 frames = []
@@ -157,16 +161,37 @@ if m3u8_url:
 else:
     print("Failed to get m3u8 url.")
 
+
 # Perform ocr
 for pil_image in frames:
+
+# Debug mode
+# for fname in sorted(os.listdir(output_dir)):
+#     if not fname.endswith('.png'):
+#         continue
+#     match_path = os.path.join(output_dir, fname)
+#     pil_image = Image.open(match_path).convert('RGB')
+    
     image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+    height, width = image.shape[:2]
     row_data = {}
-    for label, (y1, y2, x1, x2) in regions.items():
+    for label, (ry1, ry2, rx1, rx2) in regions.items():
+        y1 = int(ry1 * height)
+        y2 = int(ry2 * height)
+        x1 = int(rx1 * width)
+        x2 = int(rx2 * width)
         cropped = image[y1:y2, x1:x2]
-        result = reader.readtext(cropped, detail=0, paragraph=False)
+        processed = helper.preprocess_for_easyocr(cropped)
+        #cv2.imwrite(f'{label}.png', processed) # printing for debugging
+        result = reader.readtext(processed, detail=0, paragraph=False)
         row_data[label] = result[0].strip() if result else '' # type: ignore
 
     results_df = pd.concat([results_df, pd.DataFrame([row_data])], ignore_index=True)
 
+
 # Print results
 print(results_df)
+
+
+# Save to csv
+#results_df.to_csv('simple_output.csv')

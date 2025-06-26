@@ -41,3 +41,20 @@ def load_template_hashes(folder):
         except Exception as e:
             print(f"Failed to load template {fname}: {e}")
     return hashes
+
+def preprocess_for_easyocr(img):
+    scale_factor = 2.0
+    
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Upscale the image
+    height, width = gray.shape
+    upscaled = cv2.resize(gray, (int(width * scale_factor), int(height * scale_factor)), interpolation=cv2.INTER_CUBIC)
+
+    # slight sharpening
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5,-1],
+                       [0, -1, 0]])
+    sharpened = cv2.filter2D(upscaled, -1, kernel)
+    return sharpened

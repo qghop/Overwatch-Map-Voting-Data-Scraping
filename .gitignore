@@ -1,3 +1,6 @@
+.DS_Store
+/matches
+
 # Byte-code files
 *.pyc
 __pycache__/
