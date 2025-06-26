@@ -8,7 +8,8 @@ from io import BytesIO
 import pandas as pd
 import easyocr
 
-import helper
+import img_helper
+import twitch_helper
 
 twitch_vod_url = 'https://www.twitch.tv/videos/2495517780' # appesax (random), 1 hr long, good quality, no overlap
 #twitch_vod_url = 'https://www.twitch.tv/videos/2494835110' # zbra on patch day
@@ -36,7 +37,7 @@ regions = {
 results_df = pd.DataFrame()
 reader = easyocr.Reader(['en'])
 os.makedirs(output_dir, exist_ok=True) # for saving full images
-template_hashes = helper.load_template_hashes(template_dir)
+template_hashes = img_helper.load_template_hashes(template_dir)
 
 
 # Find all frames that have map vote data
@@ -94,7 +95,7 @@ def process_frames(m3u8_url):
                         break
 
                 frame = Image.open(BytesIO(png_data)).convert('RGB')
-                frame_hash = imagehash.phash(helper.crop_vote_area(frame))
+                frame_hash = imagehash.phash(img_helper.crop_vote_area(frame))
 
                 matched = False
 
@@ -153,7 +154,7 @@ def process_frames(m3u8_url):
 
 
 # Get usable url
-m3u8_url = helper.get_m3u8_url(twitch_vod_url)
+m3u8_url = img_helper.get_m3u8_url(twitch_vod_url)
 frames = []
 if m3u8_url:
     print(f"M3U8 URL: {m3u8_url}")
@@ -181,7 +182,7 @@ for pil_image in frames:
         x1 = int(rx1 * width)
         x2 = int(rx2 * width)
         cropped = image[y1:y2, x1:x2]
-        processed = helper.preprocess_for_easyocr(cropped)
+        processed = img_helper.preprocess_for_easyocr(cropped)
         #cv2.imwrite(f'{label}.png', processed) # printing for debugging
         result = reader.readtext(processed, detail=0, paragraph=False)
         row_data[label] = result[0].strip() if result else '' # type: ignore
