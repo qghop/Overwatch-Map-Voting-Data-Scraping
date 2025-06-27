@@ -7,6 +7,7 @@ import imagehash
 import pandas as pd
 from io import BytesIO
 import easyocr
+import gc
 
 def get_m3u8_url(vod_url):
     try:
@@ -95,13 +96,14 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
     fine_grained_frame_interval = 1 # TODO back to .5?
     frames_to_fine_grain_search = 22 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
     
-    frame_index = 0
     current_time = 0
     in_fine_mode = False
     fine_grained_frames_remaining = 0
     coarse_match_time = 0  # Time to rewind to for fine-grained search
     found_rows = []
+    gc_counter = 0
 
+    # Looping through different pipes
     while True:
         effective_interval = fine_grained_frame_interval if in_fine_mode else default_frame_interval
         search_duration = frames_to_fine_grain_search * fine_grained_frame_interval if in_fine_mode else 0
@@ -126,35 +128,34 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
             fine_matches = []
             fine_index = 0
 
+            # Looping through pipe
             while True:
                 if not proc.stdout:
                     break
 
+                # Read png
                 png_header = proc.stdout.read(8)
                 if not png_header:
                     raise EOFError
                 if png_header != b'\x89PNG\r\n\x1a\n':
-                    continue
-
+                    break
                 png_data = bytearray(png_header)
                 while True:
                     chunk_len = int.from_bytes(proc.stdout.read(4), 'big')
                     chunk_type = proc.stdout.read(4)
                     chunk_data = proc.stdout.read(chunk_len)
                     crc = proc.stdout.read(4)
-
                     png_data += chunk_len.to_bytes(4, 'big') + chunk_type + chunk_data + crc
                     if chunk_type == b'IEND':
                         break
 
                 frame = Image.open(BytesIO(png_data)).convert('RGB')
                 frame_hash = imagehash.phash(crop_vote_area(frame))
-
                 matched = False
 
+                # Check frame against template hash
                 for name, thash in template_hashes:
                     distance = thash - frame_hash
-
                     if in_fine_mode:
                         if distance <= fine_hash_threshold:
                             fine_matches.append((fine_index, distance, frame.copy()))
@@ -164,6 +165,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                             matched = True
                             break
 
+                # Move time, handle matches
                 if in_fine_mode:
                     fine_index += 1
                     fine_grained_frames_remaining -= 1
@@ -171,7 +173,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                         if fine_matches:
                             best = sorted(fine_matches, key=lambda x: (x[1], x[0]))[0]  # (index, distance, frame)
                             #print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
-                            #match_path = os.path.join(output_dir, f"match_{frame_index:04d}_{best[1]}.png")
+                            #match_path = os.path.join(output_dir, f"match_{TODO FIX:04d}_{best[1]}.png")
                             #best[2].save(match_path)
                             row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at)
                             print(row)
@@ -182,19 +184,37 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                             current_time = coarse_match_time + search_duration  # move past fine search window
                         in_fine_mode = False
                         proc.terminate()
+                        if frame:
+                            frame.close()
+                            del frame
+                        if frame_hash:
+                            del frame_hash
                         break
-
                 else:
-                    frame_index += 1
                     current_time += effective_interval
-
                     if matched:
                         #print("Coarse match found. Entering fine-grained search.")
                         in_fine_mode = True
                         fine_grained_frames_remaining = frames_to_fine_grain_search
                         coarse_match_time = current_time - effective_interval  # rewind to start of matched frame
                         proc.terminate()
+                        if frame:
+                            frame.close()
+                            del frame
+                        if frame_hash:
+                            del frame_hash
                         break
+
+                # Free memory for each frame
+                if frame:
+                    frame.close()
+                    del frame
+                if frame_hash:
+                    del frame_hash
+                gc_counter += 1
+                if gc_counter % 20 == 0:
+                    gc.collect()
+                    gc_counter = 0
 
         except EOFError:
             #print("Reached end of stream.")
@@ -203,6 +223,8 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
             print(f"Error: {e}")
             break
         finally:
-            proc.terminate()
-        
+            if proc and proc.poll() is None:
+                proc.terminate()
+                proc.wait()
+    
     return found_rows

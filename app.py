@@ -33,9 +33,24 @@ reader = easyocr.Reader(['en'])
 os.makedirs(output_dir, exist_ok=True) # for saving full images
 template_hashes = img_helper.load_template_hashes(template_dir)
 
+# Load existing URLs from vote_data_whitelisted.csv
+existing_urls = set()
+csv_path = 'vote_data_whitelisted.csv'
+if os.path.exists(csv_path):
+    with open(csv_path, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        headers = next(reader, None)  # skip header
+        for row in reader:
+            if len(row) >= 2:
+                existing_urls.add(row[1])  # assuming URL is in the second column
+
 vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv')
 
 for user_name, url, created_at in vods_triples:
+    if url in existing_urls:
+        print(f"Skipping {url} (already processed).")
+        continue
+    
     print(f"{user_name}: {url}, {created_at} has begun.")
     # Get usable url
     m3u8_url = img_helper.get_m3u8_url(url)
@@ -43,10 +58,12 @@ for user_name, url, created_at in vods_triples:
     if not m3u8_url:
         print("Failed to get m3u8 url.")
         continue
+    
     rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, reader)
     if not rows:
         print("No frames found.")
         continue
+    
     with open('vote_data_whitelisted.csv', 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rows[0].keys())
         for row in rows:
