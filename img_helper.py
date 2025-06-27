@@ -179,7 +179,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                                 match_path = os.path.join(output_dir, f"match_dist_{best[1]}.png")
                                 best[2].save(match_path)
                             row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at, output_dir, debug)
-                            print(row.keys())
+                            print(row.values())
                             found_rows.append(row)
                             current_time = coarse_match_time + best[0] * fine_grained_frame_interval + skip_seconds_on_match
                             del best
