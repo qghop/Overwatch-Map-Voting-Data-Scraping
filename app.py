@@ -45,6 +45,7 @@ if os.path.exists(csv_path):
                 existing_urls.add(row[1])  # assuming URL is in the second column
 
 vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv')
+print(f"{len(vods_triples)} Vods Found.")
 
 for user_name, url, created_at in vods_triples:
     if url in existing_urls:
