@@ -31,28 +31,38 @@ regions = { # y1, y2, x1, x2
 
 os.makedirs(output_dir, exist_ok=True) # for saving full images
 template_hashes = img_helper.load_template_hashes(template_dir)
+vods_triples = ()
 
-# TODO functionality to easily change date range, debug mode, whitelist vs random, csv file name, etc.
+debug_mode = True
+run_whitelist = True
+whitelist_raw_csv_path = 'vote_data_whitelisted.csv'
+random_raw_csv_path = 'vote_data_random.csv'
+# TODO functionality to change date range
 
-# Load existing URLs from vote_data_whitelisted.csv
-existing_urls = set()
-csv_path = 'vote_data_whitelisted.csv'
-if os.path.exists(csv_path):
-    with open(csv_path, 'r', newline='') as csvfile:
-        reader = csv.reader(csvfile)
-        headers = next(reader, None)  # skip header
-        for row in reader:
-            if len(row) >= 2:
-                existing_urls.add(row[1])  # assuming URL is in the second column
+# Get vods from whitelisted, currently all vods after patch day not already in csv
+if run_whitelist:
+    print("Updating Whitelist Data")
+    # Load existing URLs from vote_data_whitelisted.csv
+    existing_urls = set()
+    if os.path.exists(whitelist_raw_csv_path):
+        with open(whitelist_raw_csv_path, 'r', newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            headers = next(reader, None)
+            for row in reader:
+                if len(row) >= 2:
+                    existing_urls.add(row[1])
+    vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv')
+    vods_triples = [v for v in vods_triples if v[1] not in existing_urls]
 
-vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv')
+# Get vods from random streamers
+else:
+    print("Updating Random Data")
+    full_vod_info = twitch_helper.get_random_overwatch_vods()
+    vod_triples = [(v['user_name'], v['url'], v['created_at']) for v in full_vod_info]
+
 print(f"{len(vods_triples)} Vods Found.")
 
 for user_name, url, created_at in vods_triples:
-    if url in existing_urls:
-        print(f"Skipping {url} (already processed).")
-        continue
-    
     print(f"{user_name}: {url}, {created_at} has begun.")
     # Get usable url
     m3u8_url = img_helper.get_m3u8_url(url)
@@ -61,12 +71,17 @@ for user_name, url, created_at in vods_triples:
         print("Failed to get m3u8 url.")
         continue
     
-    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, debug=True)
+    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, debug=debug_mode)
     if not rows:
         print("No frames found.")
         continue
     
-    with open('vote_data_whitelisted.csv', 'a', newline='') as csvfile:
+    if run_whitelist:
+        output_csv = whitelist_raw_csv_path
+    else:
+        output_csv = random_raw_csv_path
+    
+    with open(output_csv, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rows[0].keys())
         for row in rows:
             writer.writerow(row)
