@@ -29,7 +29,6 @@ regions = {
     'votes3_raw_text': (756 / ref_h, 787 / ref_h, 1339 / ref_w, 1448 / ref_w),
 }
 
-reader = easyocr.Reader(['en'])
 os.makedirs(output_dir, exist_ok=True) # for saving full images
 template_hashes = img_helper.load_template_hashes(template_dir)
 
@@ -60,7 +59,7 @@ for user_name, url, created_at in vods_triples:
         print("Failed to get m3u8 url.")
         continue
     
-    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, reader)
+    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions)
     if not rows:
         print("No frames found.")
         continue
