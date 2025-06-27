@@ -101,7 +101,6 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
     fine_grained_frames_remaining = 0
     coarse_match_time = 0  # Time to rewind to for fine-grained search
     found_rows = []
-    gc_counter = 0
 
     # Looping through different pipes
     while True:
@@ -179,6 +178,9 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                             print(row)
                             found_rows.append(row)
                             current_time = coarse_match_time + best[0] * fine_grained_frame_interval + skip_seconds_on_match
+                            del best
+                            del row
+                            gc.collect
                         else:
                             #print("No fine-grained matches found within threshold.")
                             current_time = coarse_match_time + search_duration  # move past fine search window
@@ -211,10 +213,6 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                     del frame
                 if frame_hash:
                     del frame_hash
-                gc_counter += 1
-                if gc_counter % 20 == 0:
-                    gc.collect()
-                    gc_counter = 0
 
         except EOFError:
             #print("Reached end of stream.")
