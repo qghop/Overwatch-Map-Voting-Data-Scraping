@@ -79,7 +79,7 @@ def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at):
         x2 = int(rx2 * width)
         cropped = image[y1:y2, x1:x2]
         processed = preprocess_for_easyocr(cropped)
-        cv2.imwrite(f'{label}.png', processed) # save image for debugging
+        # cv2.imwrite(f'{label}.png', processed) # save image for debugging
         result = reader.readtext(processed, detail=0, paragraph=False)
         row_data[label] = result[0].strip() if result else '' # type: ignore
     
