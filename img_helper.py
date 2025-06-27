@@ -79,7 +79,7 @@ def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at):
         x2 = int(rx2 * width)
         cropped = image[y1:y2, x1:x2]
         processed = preprocess_for_easyocr(cropped)
-        #cv2.imwrite(f'{label}.png', processed) # printing for debugging
+        cv2.imwrite(f'{label}.png', processed) # save image for debugging
         result = reader.readtext(processed, detail=0, paragraph=False)
         row_data[label] = result[0].strip() if result else '' # type: ignore
     
@@ -92,15 +92,15 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
     reader = easyocr.Reader(['en'])
     
     skip_seconds_on_match = 60 * 13
-    coarse_hash_threshold = 10 # TODO might need changing based on stream quality(?), overlays(?), looks good for now
-    fine_hash_threshold = 6
+    coarse_hash_threshold = 15 # TODO might need changing based on stream quality(?), overlays(?), looks good for now
+    fine_hash_threshold = 10
     default_frame_interval = 13 # TODO might miss extremely fast votes
     fine_grained_frame_interval = .5 # TODO back to .5?
-    frames_to_fine_grain_search = 21 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
+    frames_to_fine_grain_search = 35 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
     
     current_time = 0
     in_fine_mode = False
-    fine_grained_frames_remaining = 0
+    fine_grained_frames_remaining = frames_to_fine_grain_search
     coarse_match_time = 0  # Time to rewind to for fine-grained search
     found_rows = []
 
@@ -110,7 +110,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
         search_duration = frames_to_fine_grain_search * fine_grained_frame_interval if in_fine_mode else 0
         start_time = coarse_match_time if in_fine_mode else current_time
 
-        print(f"Starting FFmpeg at {start_time:.2f} seconds (interval = {effective_interval}s)...")
+        #print(f"Starting FFmpeg at {start_time:.2f} seconds (interval = {effective_interval}s)...")
 
         ffmpeg_cmd = [
             'ffmpeg',
@@ -127,7 +127,6 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
 
         try:
             fine_matches = []
-            fine_index = 0
 
             # Looping through pipe
             while True:
@@ -139,7 +138,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                 if not png_header:
                     raise EOFError
                 if png_header != b'\x89PNG\r\n\x1a\n':
-                    break
+                    continue
                 png_data = bytearray(png_header)
                 while True:
                     chunk_len = int.from_bytes(proc.stdout.read(4), 'big')
@@ -159,7 +158,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                     distance = thash - frame_hash
                     if in_fine_mode:
                         if distance <= fine_hash_threshold:
-                            fine_matches.append((fine_index, distance, frame.copy()))
+                            fine_matches.append((fine_grained_frames_remaining, distance, frame.copy()))
                             break
                     else:
                         if distance <= coarse_hash_threshold:
@@ -168,14 +167,13 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
 
                 # Move time, handle matches
                 if in_fine_mode:
-                    fine_index += 1
                     fine_grained_frames_remaining -= 1
                     if fine_grained_frames_remaining <= 0:
                         if fine_matches:
                             best = sorted(fine_matches, key=lambda x: (x[1], x[0]))[0]  # (index, distance, frame)
-                            print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
-                            #match_path = os.path.join(output_dir, f"match_{TODO FIX:04d}_{best[1]}.png")
-                            #best[2].save(match_path)
+                            # print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
+                            # match_path = os.path.join(output_dir, f"match_dist_{best[1]}.png")
+                            # best[2].save(match_path)
                             row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at)
                             print(row)
                             found_rows.append(row)
@@ -184,7 +182,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                             del row
                             gc.collect
                         else:
-                            print("No fine-grained matches found within threshold.")
+                            # print("No fine-grained matches found within threshold.")
                             current_time = coarse_match_time + search_duration  # move past fine search window
                         in_fine_mode = False
                         proc.terminate()
@@ -197,7 +195,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                 else:
                     current_time += effective_interval
                     if matched:
-                        print("Coarse match found. Entering fine-grained search.")
+                        # print("Coarse match found. Entering fine-grained search.")
                         in_fine_mode = True
                         fine_grained_frames_remaining = frames_to_fine_grain_search
                         coarse_match_time = current_time - effective_interval  # rewind to start of matched frame
@@ -223,8 +221,6 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
             print(f"Error: {e}")
             break
         finally:
-            if proc and proc.poll() is None:
-                proc.terminate()
-                proc.wait()
+            proc.terminate()
     
     return found_rows

@@ -20,12 +20,12 @@ output_dir = 'matches' # for saving full images
 # regions for cropping before OCR
 ref_w = 1920
 ref_h = 1080
-regions = {
-    'map1_raw_text': (600 / ref_h, 640 / ref_h, 400 / ref_w, 685 / ref_w),
+regions = { # y1, y2, x1, x2
+    'map1_raw_text': (600 / ref_h, 640 / ref_h, 395 / ref_w, 685 / ref_w),
     'votes1_raw_text': (756 / ref_h, 787 / ref_h, 476 / ref_w, 578 / ref_w),
     'map2_raw_text': (600 / ref_h, 640 / ref_h, 810 / ref_w, 1100 / ref_w),
     'votes2_raw_text': (756 / ref_h, 787 / ref_h, 909 / ref_w, 1007 / ref_w),
-    'map3_raw_text': (600 / ref_h, 640 / ref_h, 1230 / ref_w, 1540 / ref_w),
+    'map3_raw_text': (600 / ref_h, 640 / ref_h, 1225 / ref_w, 1545 / ref_w),
     'votes3_raw_text': (756 / ref_h, 787 / ref_h, 1339 / ref_w, 1448 / ref_w),
 }
 
