@@ -64,7 +64,7 @@ def preprocess_for_easyocr(img):
 
 
 # OCR
-def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at):
+def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at, output_dir, debug=False):
     image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
     height, width = image.shape[:2]
     row_data = {
@@ -79,7 +79,9 @@ def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at):
         x2 = int(rx2 * width)
         cropped = image[y1:y2, x1:x2]
         processed = preprocess_for_easyocr(cropped)
-        # cv2.imwrite(f'{label}.png', processed) # save image for debugging
+        if debug:
+            path = os.path.join(output_dir, f"{label}.png")
+            cv2.imwrite(path, processed) # save image for debugging
         result = reader.readtext(processed, detail=0, paragraph=False)
         row_data[label] = result[0].strip() if result else '' # type: ignore
     
@@ -88,7 +90,7 @@ def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at):
 
 # Find all frames that have map vote data, and perform ocr
 # Returns list of row data from vod info and OCR
-def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions):
+def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, debug=False):
     reader = easyocr.Reader(['en'])
     
     skip_seconds_on_match = 60 * 13
@@ -110,7 +112,8 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
         search_duration = frames_to_fine_grain_search * fine_grained_frame_interval if in_fine_mode else 0
         start_time = coarse_match_time if in_fine_mode else current_time
 
-        #print(f"Starting FFmpeg at {start_time:.2f} seconds (interval = {effective_interval}s)...")
+        if debug:
+            print(f"Starting FFmpeg at {start_time:.2f} seconds (interval = {effective_interval}s)...")
 
         ffmpeg_cmd = [
             'ffmpeg',
@@ -171,18 +174,20 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                     if fine_grained_frames_remaining <= 0:
                         if fine_matches:
                             best = sorted(fine_matches, key=lambda x: (x[1], x[0]))[0]  # (index, distance, frame)
-                            # print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
-                            # match_path = os.path.join(output_dir, f"match_dist_{best[1]}.png")
-                            # best[2].save(match_path)
-                            row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at)
-                            print(row)
+                            if debug:
+                                print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
+                                match_path = os.path.join(output_dir, f"match_dist_{best[1]}.png")
+                                best[2].save(match_path)
+                            row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at, output_dir, debug)
+                            print(row.keys())
                             found_rows.append(row)
                             current_time = coarse_match_time + best[0] * fine_grained_frame_interval + skip_seconds_on_match
                             del best
                             del row
                             gc.collect
                         else:
-                            # print("No fine-grained matches found within threshold.")
+                            if debug:
+                                print("No fine-grained matches found within threshold.")
                             current_time = coarse_match_time + search_duration  # move past fine search window
                         in_fine_mode = False
                         proc.terminate()
@@ -195,7 +200,8 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                 else:
                     current_time += effective_interval
                     if matched:
-                        # print("Coarse match found. Entering fine-grained search.")
+                        if debug:
+                            print("Coarse match found. Entering fine-grained search.")
                         in_fine_mode = True
                         fine_grained_frames_remaining = frames_to_fine_grain_search
                         coarse_match_time = current_time - effective_interval  # rewind to start of matched frame
@@ -213,9 +219,16 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                     del frame
                 if frame_hash:
                     del frame_hash
+                
+                # Print every hour if debug is enabled
+                current_time = round(current_time, 2)  # Round to avoid floating point issues
+                if debug and current_time % 3600 < effective_interval:  # Print every hour
+                    print(f"Current time: {current_time:.2f} seconds")
+                    print(f"Processed frame at {current_time:.2f} seconds, found {len(found_rows)} rows so far.")
 
         except EOFError:
-            #print("Reached end of stream.")
+            if debug:
+                print("Reached end of stream.")
             break
         except Exception as e:
             print(f"Error: {e}")

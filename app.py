@@ -32,6 +32,8 @@ regions = { # y1, y2, x1, x2
 os.makedirs(output_dir, exist_ok=True) # for saving full images
 template_hashes = img_helper.load_template_hashes(template_dir)
 
+# TODO functionality to easily change date range, debug mode, whitelist vs random, csv file name, etc.
+
 # Load existing URLs from vote_data_whitelisted.csv
 existing_urls = set()
 csv_path = 'vote_data_whitelisted.csv'
@@ -59,7 +61,7 @@ for user_name, url, created_at in vods_triples:
         print("Failed to get m3u8 url.")
         continue
     
-    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions)
+    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, debug=True)
     if not rows:
         print("No frames found.")
         continue
