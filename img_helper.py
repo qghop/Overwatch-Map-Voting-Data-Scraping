@@ -27,8 +27,8 @@ def get_m3u8_url(vod_url):
     
 def crop_vote_area(img):
     width, height = img.size
-    left = int(0.25 * width)
-    right = int(0.75 * width)
+    left = int(0.3 * width)
+    right = int(0.7 * width)
     top = int(0.14 * height)
     bottom = int(0.25 * height)
     return img.crop((left, top, right, bottom))
@@ -38,7 +38,7 @@ def load_template_hashes(folder):
     for fname in os.listdir(folder):
         path = os.path.join(folder, fname)
         try:
-            img = Image.open(path).convert('RGB')
+            img = Image.open(path).convert('L')
             crop = crop_vote_area(img)
             #crop.save(f"test{fname}.png") # Save for debugging
             hashes.append((fname, imagehash.phash(crop)))
