@@ -8,6 +8,7 @@ import pandas as pd
 import easyocr
 import csv
 from datetime import datetime, timedelta, timezone
+import subprocess
 
 import img_helper
 import twitch_helper
@@ -56,6 +57,7 @@ if run_whitelist:
                     existing_urls.add(row[1])
     vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv', start_date, end_date)
     vods_triples = [v for v in vods_triples if v[1] not in existing_urls]
+    vods_triples = vods_triples[:10]  # Limit to 10 vods for testing
 
 # Get vods from random streamers
 else:
@@ -88,3 +90,12 @@ for user_name, url, created_at in vods_triples:
         writer = csv.DictWriter(csvfile, fieldnames=rows[0].keys())
         for row in rows:
             writer.writerow(row)
+            
+
+# Stage, commit, and push CSV changes
+# TODO just whitelist now, also add args for later (date, debug, mode)
+subprocess.run(["git", "config", "--global", "user.name", "github-actions"])
+subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"])
+subprocess.run(["git", "add", "vote_data_whitelisted.csv"])
+subprocess.run(["git", "commit", "-m", "Update vote data"])
+subprocess.run(["git", "push"])
