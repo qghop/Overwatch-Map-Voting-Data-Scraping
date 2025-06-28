@@ -91,15 +91,15 @@ def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at, output_
 
 # Find all frames that have map vote data, and perform ocr
 # Returns list of row data from vod info and OCR
-def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, debug=False):
+def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name, url, created_at, regions, debug=False):
     reader = easyocr.Reader(['en'])
     
     skip_seconds_on_match = 60 * 13
     coarse_hash_threshold = 15 # TODO might need changing based on stream quality(?), overlays(?), looks good for now
     fine_hash_threshold = 15 # TODO change back to 10?
     default_frame_interval = 13 # TODO might miss extremely fast votes
-    fine_grained_frame_interval = .5 
-    frames_to_fine_grain_search = 35 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
+    fine_grained_frame_interval = .05 
+    frames_to_fine_grain_search = 23 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
     
     current_time = 0
     in_fine_mode = False
@@ -182,14 +182,29 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                 frame_hash = imagehash.phash(crop_vote_area(frame))
                 matched = False
 
-                # Check frame against template hash
-                for name, thash in template_hashes:
-                    distance = thash - frame_hash
-                    if in_fine_mode:
+                # # Check frame against template hash
+                # for name, thash in template_hashes:
+                #     distance = thash - frame_hash
+                #     if in_fine_mode:
+                #         if distance <= fine_hash_threshold:
+                #             fine_matches.append((fine_grained_frames_remaining, distance, frame.copy()))
+                #             break
+                #     else:
+                #         if distance <= coarse_hash_threshold:
+                #             matched = True
+                #             break
+                
+                # Check frame against template hashes depending on mode
+                if in_fine_mode:
+                    for name, thash in thashes_fine:
+                        distance = thash - frame_hash
                         if distance <= fine_hash_threshold:
                             fine_matches.append((fine_grained_frames_remaining, distance, frame.copy()))
+                            matched = True
                             break
-                    else:
+                else:
+                    for name, thash in thashes_coarse:
+                        distance = thash - frame_hash
                         if distance <= coarse_hash_threshold:
                             matched = True
                             break
@@ -199,7 +214,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                     fine_grained_frames_remaining -= 1
                     if fine_grained_frames_remaining <= 0:
                         if fine_matches:
-                            best = sorted(fine_matches, key=lambda x: (x[1], x[0]))[0]  # (index, distance, frame)
+                            best = sorted(fine_matches, key=lambda x: (x[1], -x[0]))[0]  # (index, distance, frame)
                             if debug:
                                 print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
                                 match_path = os.path.join(output_dir, f"match.png")

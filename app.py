@@ -6,7 +6,8 @@ import argparse
 import img_helper
 import twitch_helper
 
-template_dir = 'templates'
+template_fine_dir = 'templates_fine'
+template_coarse_dir = 'templates_coarse'
 output_dir = 'matches'
 
 # regions for cropping before OCR
@@ -22,7 +23,8 @@ regions = { # y1, y2, x1, x2
 }
 
 os.makedirs(output_dir, exist_ok=True)
-template_hashes = img_helper.load_template_hashes(template_dir)
+template_hashes_fine = img_helper.load_template_hashes(template_fine_dir)
+template_hashes_coarse = img_helper.load_template_hashes(template_coarse_dir)
 vods_triples = ()
 
 whitelist_raw_csv_path = 'vote_data_whitelisted.csv'
@@ -82,7 +84,8 @@ for user_name, url, created_at in vods_triples:
         print("Failed to get m3u8 url.")
         continue
     
-    rows = img_helper.process_frames(m3u8_url, template_hashes, output_dir, user_name, url, created_at, regions, debug=debug_mode)
+    rows = img_helper.process_frames(m3u8_url, template_hashes_fine, template_hashes_coarse, 
+                                     output_dir, user_name, url, created_at, regions, debug=debug_mode)
     if not rows:
         print("No frames found.")
         continue
