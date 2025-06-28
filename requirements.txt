@@ -8,3 +8,5 @@ torch
 torchvision
 python-dotenv
 requests
+streamlink
+ffmpeg

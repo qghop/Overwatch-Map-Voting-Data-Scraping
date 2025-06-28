@@ -39,16 +39,14 @@ vods_triples = ()
 whitelist_raw_csv_path = 'vote_data_whitelisted.csv'
 random_raw_csv_path = 'vote_data_random.csv'
 
-# Set up argparse
+def str2bool(v):
+    return str(v).lower() in ("yes", "true", "t", "1")
 parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
-parser.add_argument('--debug', action='store_true', help="Enable debug mode")
-parser.add_argument('--no-debug', action='store_false', dest='debug', help="Disable debug mode")
-parser.add_argument('--whitelist', action='store_true', help="Run on whitelisted streamers")
-parser.add_argument('--no-whitelist', action='store_false', dest='whitelist', help="Don't run on whitelist")
+parser.add_argument('--debug', type=str2bool, default=False, help="Enable debug mode")
+parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
 parser.add_argument('--start-date', type=str, default="2025-06-24", help="Start date in YYYY-MM-DD")
 parser.add_argument('--end-date', type=str, default="2025-06-26", help="End date in YYYY-MM-DD")
 parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
-# Parse the arguments
 args = parser.parse_args()
 # Convert dates to datetime with UTC timezone
 start_date = datetime.strptime(args.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
