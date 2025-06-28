@@ -249,10 +249,18 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                 if frame_hash:
                     del frame_hash
                 
-                # Print every hour if debug is enabled
-                current_time = round(current_time, 2)  # Round to avoid floating point issues
-                if debug and current_time % 300 < effective_interval:  # Print every 5 minutes
-                    print(f"Current time: {current_time:.2f} seconds")
+                # Break loop after 20 hours
+                if current_time >= 72000:
+                    if debug:
+                        print("Reached 20-hour time limit. Exiting.")
+                    raise EOFError
+
+                # Print every 10 minutes in hours:minutes format
+                current_time = round(current_time, 2)
+                if debug and current_time % 300 < effective_interval:
+                    hours = int(current_time // 3600)
+                    minutes = int((current_time % 3600) // 60)
+                    print(f"Current time: {hours:02d}:{minutes:02d} (hh:mm)")
 
         except EOFError:
             if debug:
