@@ -6,7 +6,7 @@ on:
       debug:
         description: "Enable debug mode"
         required: false
-        default: "false"
+        default: "true"
       whitelist:
         description: "Run on whitelist"
         required: false
@@ -22,11 +22,11 @@ on:
       vods_limit:
         description: "Max number of VODs to process"
         required: false
-        default: "100"
+        default: "10"
 
 jobs:
   update-vote-data:
-    runs-on: ubuntu-latest
+    runs-on: macos-13
 
     env:
       TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}

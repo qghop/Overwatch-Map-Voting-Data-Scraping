@@ -1,14 +1,7 @@
 import subprocess
 import os
-import cv2
-import numpy as np
-from PIL import Image
-import imagehash
-import pandas as pd
-import easyocr
 import csv
-from datetime import datetime, timedelta, timezone
-import subprocess
+from datetime import datetime, timezone
 import argparse
 
 import img_helper
@@ -42,11 +35,11 @@ random_raw_csv_path = 'vote_data_random.csv'
 def str2bool(v):
     return str(v).lower() in ("yes", "true", "t", "1")
 parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
-parser.add_argument('--debug', type=str2bool, default=False, help="Enable debug mode")
+parser.add_argument('--debug', type=str2bool, default=True, help="Enable debug mode")
 parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
 parser.add_argument('--start-date', type=str, default="2025-06-24", help="Start date in YYYY-MM-DD")
 parser.add_argument('--end-date', type=str, default="2025-06-26", help="End date in YYYY-MM-DD")
-parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
+parser.add_argument('--vods-limit', type=int, default=10, help="Maximum number of VODs to process")
 args = parser.parse_args()
 # Convert dates to datetime with UTC timezone
 start_date = datetime.strptime(args.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
