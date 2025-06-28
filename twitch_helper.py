@@ -6,7 +6,8 @@ from datetime import datetime, timedelta, timezone
 import time
 import csv
 
-load_dotenv()
+if os.environ.get('GITHUB_ACTIONS') != 'true':
+    load_dotenv()
 
 client_id = os.getenv('TWITCH_CLIENT_ID')
 client_secret = os.getenv('TWITCH_SECRET')
