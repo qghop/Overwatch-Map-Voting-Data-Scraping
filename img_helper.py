@@ -4,8 +4,6 @@ import cv2
 import numpy as np
 from PIL import Image
 import imagehash
-import pandas as pd
-from io import BytesIO
 import easyocr
 import gc
 import time

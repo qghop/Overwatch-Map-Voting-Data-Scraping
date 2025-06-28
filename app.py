@@ -1,4 +1,3 @@
-import subprocess
 import os
 import csv
 from datetime import datetime, timezone
@@ -7,11 +6,8 @@ import argparse
 import img_helper
 import twitch_helper
 
-#twitch_vod_url = 'https://www.twitch.tv/videos/2495517780' # appesax (random), 1 hr long, good quality, no overlap
-#twitch_vod_url = 'https://www.twitch.tv/videos/2494835110' # zbra on patch day
-#twitch_vod_url = 'https://www.twitch.tv/videos/2495781156' # vega, sub only vod (doesn't work)
 template_dir = 'templates'
-output_dir = 'matches' # for saving full images
+output_dir = 'matches'
 
 # regions for cropping before OCR
 ref_w = 1920
@@ -25,7 +21,7 @@ regions = { # y1, y2, x1, x2
     'votes3_raw_text': (756 / ref_h, 787 / ref_h, 1339 / ref_w, 1448 / ref_w),
 }
 
-os.makedirs(output_dir, exist_ok=True) # for saving full images
+os.makedirs(output_dir, exist_ok=True)
 template_hashes = img_helper.load_template_hashes(template_dir)
 vods_triples = ()
 
@@ -39,16 +35,13 @@ parser.add_argument('--debug', type=str2bool, default=True, help="Enable debug m
 parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
 parser.add_argument('--start-date', type=str, default="2025-06-24", help="Start date in YYYY-MM-DD")
 parser.add_argument('--end-date', type=str, default="2025-06-26", help="End date in YYYY-MM-DD")
-parser.add_argument('--vods-limit', type=int, default=10, help="Maximum number of VODs to process")
+parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
 args = parser.parse_args()
-# Convert dates to datetime with UTC timezone
 start_date = datetime.strptime(args.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 end_date = datetime.strptime(args.end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-# Assign the values
 debug_mode = args.debug
 run_whitelist = args.whitelist
 vods_limit = args.vods_limit
-# Debug print (optional)
 print("Debug mode:", debug_mode)
 print("Whitelist mode:", run_whitelist)
 print("Start date:", start_date)

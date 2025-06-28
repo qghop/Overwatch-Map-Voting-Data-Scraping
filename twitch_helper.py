@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import requests
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import time
 import csv
 
@@ -46,6 +46,7 @@ def get_user_id(username):
     id = j['data'][0]['id']
     return id
 
+# Getting user IDs for whitelisted streamers
 # results = []
 # for username in whitelist_streamers:
 #     try:
