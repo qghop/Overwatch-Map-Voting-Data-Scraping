@@ -11,6 +11,8 @@ if os.environ.get('GITHUB_ACTIONS') != 'true':
 
 client_id = os.getenv('TWITCH_CLIENT_ID')
 client_secret = os.getenv('TWITCH_SECRET')
+if not all([client_id, client_secret]):
+    raise ValueError("Missing Twitch API Keys")
 
 overwatch2_twitch_id = '515025'
 

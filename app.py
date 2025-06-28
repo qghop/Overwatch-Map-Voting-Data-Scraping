@@ -91,11 +91,3 @@ for user_name, url, created_at in vods_triples:
         for row in rows:
             writer.writerow(row)
             
-
-# Stage, commit, and push CSV changes
-# TODO just whitelist now, also add args for later (date, debug, mode)
-subprocess.run(["git", "config", "--global", "user.name", "github-actions"])
-subprocess.run(["git", "config", "--global", "user.email", "github-actions@github.com"])
-subprocess.run(["git", "add", "vote_data_whitelisted.csv"])
-subprocess.run(["git", "commit", "-m", "Update vote data"])
-subprocess.run(["git", "push"])
