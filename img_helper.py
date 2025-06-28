@@ -98,9 +98,9 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
     
     skip_seconds_on_match = 60 * 13
     coarse_hash_threshold = 15 # TODO might need changing based on stream quality(?), overlays(?), looks good for now
-    fine_hash_threshold = 10
+    fine_hash_threshold = 15 # TODO change back to 10?
     default_frame_interval = 13 # TODO might miss extremely fast votes
-    fine_grained_frame_interval = .5 # TODO back to .5?
+    fine_grained_frame_interval = .5 
     frames_to_fine_grain_search = 35 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
     
     current_time = 0
@@ -255,7 +255,7 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                         print("Reached 20-hour time limit. Exiting.")
                     raise EOFError
 
-                # Print every 10 minutes in hours:minutes format
+                # Print every 5 minutes in hours:minutes format
                 current_time = round(current_time, 2)
                 if debug and current_time % 300 < effective_interval:
                     hours = int(current_time // 3600)
