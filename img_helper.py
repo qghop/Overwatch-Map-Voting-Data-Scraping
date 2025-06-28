@@ -8,6 +8,7 @@ import pandas as pd
 from io import BytesIO
 import easyocr
 import gc
+import time
 
 def get_m3u8_url(vod_url):
     try:
@@ -49,11 +50,11 @@ def preprocess_for_easyocr(img):
     scale_factor = 2.0
     
     # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
     # Upscale the image
-    height, width = gray.shape
-    upscaled = cv2.resize(gray, (int(width * scale_factor), int(height * scale_factor)), interpolation=cv2.INTER_CUBIC)
+    height, width = img.shape
+    upscaled = cv2.resize(img, (int(width * scale_factor), int(height * scale_factor)), interpolation=cv2.INTER_CUBIC)
 
     # slight sharpening
     kernel = np.array([[0, -1, 0],
@@ -65,8 +66,10 @@ def preprocess_for_easyocr(img):
 
 # OCR
 def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at, output_dir, debug=False):
-    image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-    height, width = image.shape[:2]
+    #image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+    image = np.array(pil_image)
+    #height, width = image.shape[:2]
+    height, width = image.shape
     row_data = {
         'user_name': user_name,
         'vod_url': url,
@@ -115,16 +118,31 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
         if debug:
             print(f"Starting FFmpeg at {start_time:.2f} seconds (interval = {effective_interval}s)...")
 
+        # ffmpeg_cmd = [
+        #     'ffmpeg',
+        #     '-ss', str(start_time),
+        #     '-i', m3u8_url,
+        #     '-vf', f'fps=1/{effective_interval}',
+        #     '-vcodec', 'png',
+        #     '-f', 'image2pipe',
+        #     '-loglevel', 'error',
+        #     'pipe:1'
+        # ]
+        
         ffmpeg_cmd = [
             'ffmpeg',
             '-ss', str(start_time),
             '-i', m3u8_url,
-            '-vf', f'fps=1/{effective_interval}',
-            '-vcodec', 'png',
-            '-f', 'image2pipe',
+            '-vf', f'fps=1/{effective_interval}, scale=1280:720',
+            '-f', 'rawvideo',
+            '-pix_fmt', 'gray', # 'rgb24' for RGB
             '-loglevel', 'error',
             'pipe:1'
         ]
+        
+        frame_width = 1280
+        frame_height = 720
+        frame_size = frame_width * frame_height # * 3 if RGB
 
         proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -133,26 +151,36 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
 
             # Looping through pipe
             while True:
+                # small throttle
+                time.sleep(0.01)
+                
                 if not proc.stdout:
                     break
 
-                # Read png
-                png_header = proc.stdout.read(8)
-                if not png_header:
-                    raise EOFError
-                if png_header != b'\x89PNG\r\n\x1a\n':
-                    continue
-                png_data = bytearray(png_header)
-                while True:
-                    chunk_len = int.from_bytes(proc.stdout.read(4), 'big')
-                    chunk_type = proc.stdout.read(4)
-                    chunk_data = proc.stdout.read(chunk_len)
-                    crc = proc.stdout.read(4)
-                    png_data += chunk_len.to_bytes(4, 'big') + chunk_type + chunk_data + crc
-                    if chunk_type == b'IEND':
-                        break
+                # # Read png
+                # png_header = proc.stdout.read(8)
+                # if not png_header:
+                #     raise EOFError
+                # if png_header != b'\x89PNG\r\n\x1a\n':
+                #     continue
+                # png_data = bytearray(png_header)
+                # while True:
+                #     chunk_len = int.from_bytes(proc.stdout.read(4), 'big')
+                #     chunk_type = proc.stdout.read(4)
+                #     chunk_data = proc.stdout.read(chunk_len)
+                #     crc = proc.stdout.read(4)
+                #     png_data += chunk_len.to_bytes(4, 'big') + chunk_type + chunk_data + crc
+                #     if chunk_type == b'IEND':
+                #         break
 
-                frame = Image.open(BytesIO(png_data)).convert('RGB')
+                # frame = Image.open(BytesIO(png_data)).convert('RGB')
+                
+                raw_frame = proc.stdout.read(frame_size)
+                if not raw_frame:
+                    raise EOFError
+                frame_array = np.frombuffer(raw_frame, np.uint8).reshape((frame_height, frame_width)) # add , 3 after frame_width for RGB
+                frame = Image.fromarray(frame_array, mode='L')  # 'L' for grayscale, delete for RGB
+                
                 frame_hash = imagehash.phash(crop_vote_area(frame))
                 matched = False
 
@@ -176,15 +204,16 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                             best = sorted(fine_matches, key=lambda x: (x[1], x[0]))[0]  # (index, distance, frame)
                             if debug:
                                 print(f"Best fine-grained match found: frame {best[0]} with distance {best[1]}")
-                                match_path = os.path.join(output_dir, f"match_dist_{best[1]}.png")
+                                match_path = os.path.join(output_dir, f"match.png")
                                 best[2].save(match_path)
+                            # TODO run OCR on all fine_matches? get best text, highest number of total votes?
                             row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at, output_dir, debug)
                             print(row.values())
                             found_rows.append(row)
                             current_time = coarse_match_time + best[0] * fine_grained_frame_interval + skip_seconds_on_match
                             del best
                             del row
-                            gc.collect
+                            gc.collect()
                         else:
                             if debug:
                                 print("No fine-grained matches found within threshold.")
@@ -222,9 +251,8 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
                 
                 # Print every hour if debug is enabled
                 current_time = round(current_time, 2)  # Round to avoid floating point issues
-                if debug and current_time % 3600 < effective_interval:  # Print every hour
+                if debug and current_time % 300 < effective_interval:  # Print every 5 minutes
                     print(f"Current time: {current_time:.2f} seconds")
-                    print(f"Processed frame at {current_time:.2f} seconds, found {len(found_rows)} rows so far.")
 
         except EOFError:
             if debug:
@@ -234,6 +262,9 @@ def process_frames(m3u8_url, template_hashes, output_dir, user_name, url, create
             print(f"Error: {e}")
             break
         finally:
+            if proc.stdout:
+                proc.stdout.close()
             proc.terminate()
+            proc.wait()
     
     return found_rows

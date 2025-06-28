@@ -113,21 +113,20 @@ def get_random_overwatch_vods():
 
     return all_filtered
 
-# Returns list of (user_name, url, created_at) from the last 5 vods of all user_id in (username, user_id) csv input
-def get_whitelist_overwatch_vods(csv_path):
+# Returns list of (user_name, url, created_at) from the last 20 vods of all user_id in (username, user_id) csv input between date range
+def get_whitelist_overwatch_vods(csv_path, cutoff_start_date, cutoff_end_date):
     vods = []
-    cutoff_date = datetime(2025, 6, 24, tzinfo=timezone.utc)
+    
     with open(csv_path, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             user_id = row['user_id']
-            r = requests.get(f"https://api.twitch.tv/helix/videos?user_id={user_id}&type=archive&first=5", 
+            r = requests.get(f"https://api.twitch.tv/helix/videos?user_id={user_id}&type=archive&first=20", 
                                 headers={f"Client-ID":client_id, f"Authorization":f"Bearer {oauth_token}"})
             r.raise_for_status()
-            # Filter if made before patch day (2025-06-24)
             for v in r.json()['data']:
                 dt = datetime.fromisoformat(v['created_at'].replace('Z', '+00:00'))
-                if dt >= cutoff_date:
+                if cutoff_start_date <= dt <= cutoff_end_date:
                     vods.append((v['user_name'], v['url'], v['created_at']))
             time.sleep(0.25)
 

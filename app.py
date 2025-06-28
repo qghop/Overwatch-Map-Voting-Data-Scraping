@@ -7,6 +7,7 @@ import imagehash
 import pandas as pd
 import easyocr
 import csv
+from datetime import datetime, timedelta, timezone
 
 import img_helper
 import twitch_helper
@@ -37,7 +38,9 @@ debug_mode = True
 run_whitelist = True
 whitelist_raw_csv_path = 'vote_data_whitelisted.csv'
 random_raw_csv_path = 'vote_data_random.csv'
-# TODO functionality to change date range
+# currently whitelist only, random is most recent hour when ran
+start_date = datetime(2025, 6, 24, tzinfo=timezone.utc)
+end_date = datetime(2025, 6, 26, tzinfo=timezone.utc)
 
 # Get vods from whitelisted, currently all vods after patch day not already in csv
 if run_whitelist:
@@ -51,14 +54,14 @@ if run_whitelist:
             for row in reader:
                 if len(row) >= 2:
                     existing_urls.add(row[1])
-    vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv')
+    vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv', start_date, end_date)
     vods_triples = [v for v in vods_triples if v[1] not in existing_urls]
 
 # Get vods from random streamers
 else:
     print("Updating Random Data")
     full_vod_info = twitch_helper.get_random_overwatch_vods()
-    vod_triples = [(v['user_name'], v['url'], v['created_at']) for v in full_vod_info]
+    vods_triples = [(v['user_name'], v['url'], v['created_at']) for v in full_vod_info]
 
 print(f"{len(vods_triples)} Vods Found.")
 
