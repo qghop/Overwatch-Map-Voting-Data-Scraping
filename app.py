@@ -9,6 +9,7 @@ import easyocr
 import csv
 from datetime import datetime, timedelta, timezone
 import subprocess
+import argparse
 
 import img_helper
 import twitch_helper
@@ -35,13 +36,34 @@ os.makedirs(output_dir, exist_ok=True) # for saving full images
 template_hashes = img_helper.load_template_hashes(template_dir)
 vods_triples = ()
 
-debug_mode = True
-run_whitelist = True
 whitelist_raw_csv_path = 'vote_data_whitelisted.csv'
 random_raw_csv_path = 'vote_data_random.csv'
-# currently whitelist only, random is most recent hour when ran
-start_date = datetime(2025, 6, 24, tzinfo=timezone.utc)
-end_date = datetime(2025, 6, 26, tzinfo=timezone.utc)
+
+# Set up argparse
+parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
+parser.add_argument('--debug', action='store_true', help="Enable debug mode")
+parser.add_argument('--no-debug', action='store_false', dest='debug', help="Disable debug mode")
+parser.add_argument('--whitelist', action='store_true', help="Run on whitelisted streamers")
+parser.add_argument('--no-whitelist', action='store_false', dest='whitelist', help="Don't run on whitelist")
+parser.add_argument('--start-date', type=str, default="2025-06-24", help="Start date in YYYY-MM-DD")
+parser.add_argument('--end-date', type=str, default="2025-06-26", help="End date in YYYY-MM-DD")
+parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
+# Parse the arguments
+args = parser.parse_args()
+# Convert dates to datetime with UTC timezone
+start_date = datetime.strptime(args.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+end_date = datetime.strptime(args.end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+# Assign the values
+debug_mode = args.debug
+run_whitelist = args.whitelist
+vods_limit = args.vods_limit
+# Debug print (optional)
+print("Debug mode:", debug_mode)
+print("Whitelist mode:", run_whitelist)
+print("Start date:", start_date)
+print("End date:", end_date)
+print("VODs limit:", vods_limit)
+
 
 # Get vods from whitelisted, currently all vods after patch day not already in csv
 if run_whitelist:
@@ -57,7 +79,7 @@ if run_whitelist:
                     existing_urls.add(row[1])
     vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv', start_date, end_date)
     vods_triples = [v for v in vods_triples if v[1] not in existing_urls]
-    vods_triples = vods_triples[:10]  # Limit to 10 vods for testing
+    vods_triples = vods_triples[:vods_limit]
 
 # Get vods from random streamers
 else:
