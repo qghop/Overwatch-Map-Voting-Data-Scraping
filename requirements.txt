@@ -10,3 +10,5 @@ python-dotenv
 requests
 streamlink
 ffmpeg
+rapidfuzz
+streamlit
