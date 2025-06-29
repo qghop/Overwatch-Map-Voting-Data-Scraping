@@ -96,16 +96,17 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
     
     skip_seconds_on_match = 60 * 13
     coarse_hash_threshold = 15 # TODO might need changing based on stream quality(?), overlays(?), looks good for now
-    fine_hash_threshold = 15 # TODO change back to 10?
+    fine_hash_threshold = 10 
     default_frame_interval = 13 # TODO might miss extremely fast votes
-    fine_grained_frame_interval = .05 
-    frames_to_fine_grain_search = 23 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
+    fine_grained_frame_interval = .1 
+    frames_to_fine_grain_search = 25 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
     
     current_time = 0
     in_fine_mode = False
     fine_grained_frames_remaining = frames_to_fine_grain_search
     coarse_match_time = 0  # Time to rewind to for fine-grained search
     found_rows = []
+    one_coarse_match_found = False
 
     # Looping through different pipes
     while True:
@@ -207,6 +208,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                         distance = thash - frame_hash
                         if distance <= coarse_hash_threshold:
                             matched = True
+                            one_coarse_match_found = True
                             break
 
                 # Move time, handle matches
@@ -262,8 +264,14 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                 if frame_hash:
                     del frame_hash
                 
-                # Break loop after 20 hours
-                if current_time >= 72000:
+                # Break loop after 90 minutes if no coarse match found
+                if not one_coarse_match_found and current_time >= 5400:
+                    if debug:
+                        print("Reached 90-minute no-match time limit. Exiting.")
+                    raise EOFError
+                
+                # Break loop after 12 hours
+                if current_time >= 43200:
                     if debug:
                         print("Reached 20-hour time limit. Exiting.")
                     raise EOFError

@@ -35,7 +35,7 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
 parser.add_argument('--debug', type=str2bool, default=True, help="Enable debug mode")
 parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
-parser.add_argument('--start-date', type=str, default="2025-06-24", help="Start date in YYYY-MM-DD")
+parser.add_argument('--start-date', type=str, default="2025-06-25", help="Start date in YYYY-MM-DD")
 parser.add_argument('--end-date', type=str, default="2025-06-26", help="End date in YYYY-MM-DD")
 parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
 args = parser.parse_args()
@@ -65,7 +65,6 @@ if run_whitelist:
                     existing_urls.add(row[1])
     vods_triples = twitch_helper.get_whitelist_overwatch_vods('whitelist.csv', start_date, end_date)
     vods_triples = [v for v in vods_triples if v[1] not in existing_urls]
-    vods_triples = vods_triples[:vods_limit]
 
 # Get vods from random streamers
 else:
@@ -73,6 +72,7 @@ else:
     full_vod_info = twitch_helper.get_random_overwatch_vods()
     vods_triples = [(v['user_name'], v['url'], v['created_at']) for v in full_vod_info]
 
+vods_triples = vods_triples[:vods_limit]
 print(f"{len(vods_triples)} Vods Found.")
 
 for user_name, url, created_at in vods_triples:

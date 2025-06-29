@@ -82,7 +82,7 @@ def get_random_overwatch_vods():
     cursor = None
     pages_fetched = 0
     max_pages = 5
-    target_number_of_vods = 20 # At least this many vods should be grabbed
+    target_number_of_vods = 50 # At least this many vods should be grabbed
 
     while pages_fetched < max_pages:
         url = f"https://api.twitch.tv/helix/videos?game_id={overwatch2_twitch_id}&type=archive&first=100"
