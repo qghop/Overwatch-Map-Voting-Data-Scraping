@@ -14,11 +14,31 @@ df_wl, df_maps = load_and_summarize()
 
 st.set_page_config(layout="wide", page_title="Overwatch Map Voting Data", page_icon="favicon.png")
 
-left, center, right = st.columns([2, 5, 2])
+# Table of contents
+st.sidebar.title("Views")
+st.sidebar.markdown("""
+[Title](#overwatch-map-voting-data)
+
+[Map Tier List](#map-tier-list-based-on-votes-per-appearance)
+
+[Bar Charts](#bar-charts)
+
+[Votes by Card](#votes-by-card)
+
+[Map Data](#map-data)
+
+[Raw Data](#raw-data)
+
+[Methodology](#methodology)
+""")
+
+left, center, right = st.columns([1, 5, 1])
 with center:
+
     # --- TITLE ---
     st.title("Overwatch Map Voting Data")
     st.write("Data on Map Voting in Grandmaster, NA + EMEA Lobbies, extracted from public Twitch VODs.")
+    st.write("Updated as of 2025-06-26.")
 
     # --- TIER LIST ---
     map_image_filenames = {
@@ -139,6 +159,25 @@ with center:
     )
     st.plotly_chart(fig_percent, use_container_width=True)
 
+    # --- VOTES BY CARD ---
+    st.subheader("Votes by Card")
+    df_votes_by_card = df_wl[['votes1', 'votes2', 'votes3']].sum().reset_index()
+    df_votes_by_card.columns = ['Card', 'Votes']
+    df_votes_by_card['Card'] = df_votes_by_card['Card'].replace({
+        'votes1': 'Left',
+        'votes2': 'Middle',
+        'votes3': 'Right'
+    })
+    fig_votes_by_card = px.pie(
+        df_votes_by_card,
+        values='Votes',
+        names='Card',
+        title='Total Votes by Card',
+        labels={'Votes': 'Total Votes', 'Card': 'Card'},
+        height=500
+    )
+    st.plotly_chart(fig_votes_by_card, use_container_width=True)
+
     # --- MAP DATA ---
     st.subheader("Map Data")
     st.dataframe(df_maps, hide_index=True)
@@ -149,4 +188,15 @@ with center:
 
     # --- METHODOLOGY ---
     st.subheader("Methodology")
-    st.write("This project...")
+    st.markdown("""
+                This project uses machine vision to automatically look through Twitch VODs for map voting data. 
+                
+                Note that this data has been limited to a selected whitelist of streamers selected for their generally high rank,
+                streams that mostly consist of competitive play (no stadium), and play in the english language, as those streams consistenly
+                gave data without wasting processing time.
+                
+                The Tier List is split up based on an assumption of standard deviations. S Tier includes maps with total votes above the 84th Percentile, 
+                making them a full standard deviation away. A tier is above half a standard deviation, above the 69th percentile, and so on.
+                
+                If you're a fan of this work, [follow me on twitter.](http://twitter.com/qghop_) Thanks!
+                """)
