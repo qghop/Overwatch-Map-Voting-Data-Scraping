@@ -53,5 +53,18 @@ def clean_vote_data(input_file, output_file):
     # Remove duplicate votes from same created_at date
     df = df.drop_duplicates(subset=['map1', 'votes1', 'map2', 'votes2', 'map3', 'votes3', 'created_at'], keep='first')
     
+    # Get total votes, remove row if below 2 or above 10
+    df['total_votes'] = df[['votes1', 'votes2', 'votes3']].apply(lambda x: sum(int(v) for v in x if str(v).isdigit()), axis=1)
+    df = df[df['total_votes'] > 1]
+    df = df[df['total_votes'] <= 10]
+    
+    # Add columns percent1-3 = votes1-3 / total_votes
+    df['percent1'] = df['votes1'].astype(int) / df['total_votes']
+    df['percent2'] = df['votes2'].astype(int) / df['total_votes']
+    df['percent3'] = df['votes3'].astype(int) / df['total_votes']
+    
     df.to_csv(output_file, index=False)
     return df
+
+# Run on whitelisted data
+clean_vote_data('vote_data_whitelisted.csv', 'vote_data_whitelisted_cleaned.csv')
