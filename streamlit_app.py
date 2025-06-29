@@ -25,6 +25,8 @@ st.sidebar.markdown("""
 
 [Votes by Card](#votes-by-card)
 
+[Scatter Plot](#scatter-plot)
+
 [Map Data](#map-data)
 
 [Raw Data](#raw-data)
@@ -177,6 +179,22 @@ with center:
         height=500
     )
     st.plotly_chart(fig_votes_by_card, use_container_width=True)
+    
+    # --- SCATTER PLOT, APPEARANCES VS VOTES --- 
+    st.subheader("Scatter Plot")
+    fig_appearances_vs_votes = px.scatter(
+        df_maps,
+        x='Appearances',
+        y='Total_Votes',
+        color='Map Type',
+        title='Appearances vs Total Votes per Map',
+        labels={'Appearances': 'Appearances', 'Total_Votes': 'Total Votes'},
+        hover_data=['Map Name'],
+        height=500,
+        category_orders={'Map Name': df_maps.sort_values('Total_Votes', ascending=False)['Map Name'].tolist()}
+    )
+    fig_appearances_vs_votes.update_traces(marker=dict(size=10))
+    st.plotly_chart(fig_appearances_vs_votes, use_container_width=True)
 
     # --- MAP DATA ---
     st.subheader("Map Data")
