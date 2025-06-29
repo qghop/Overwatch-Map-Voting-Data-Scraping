@@ -1,3 +1,4 @@
+from os import name
 import pandas as pd
 from rapidfuzz import fuzz, process
 
@@ -13,6 +14,12 @@ overwatch_maps = [
     # Push Maps
     "COLOSSEO", "ESPERANÇA", "NEW QUEEN STREET", "RUNASAPI"
 ]
+
+control_maps = ["ANTARCTIC PENINSULA", "BUSAN", "ILIOS", "LIJIANG TOWER", "NEPAL", "SAMOA", "OASIS"]
+escort_maps = ["CIRCUIT ROYAL", "DORADO", "HAVANA", "JUNKERTOWN", "SHAMBALI MONASTERY", "RIALTO", "ROUTE 66", "WATCHPOINT: GIBRALTAR"]
+flashpoint_maps = ["SURAVASA", "NEW JUNK CITY", "AATLIS"]
+hybrid_maps = ["BLIZZARD WORLD", "EICHENWALDE", "HOLLYWOOD", "KING'S ROW", "MIDTOWN", "NUMBANI", "PARAÍSO"]
+push_maps = ["COLOSSEO", "ESPERANÇA", "NEW QUEEN STREET", "RUNASAPI"]
 
 # Fuzzy match map_name
 def fix_map_name(map_name, valid_maps, threshold=80):
@@ -66,5 +73,43 @@ def clean_vote_data(input_file, output_file):
     df.to_csv(output_file, index=False)
     return df
 
+# Takes in cleaned_df (from clean_vote_data)
+# Returns Dataframe with columns Map Name, Appearances, Total Votes, Total Percent of Votes
+def summarize_vote_data(df):
+    # Melt the dataframe to long format
+    maps = df[['map1', 'votes1', 'percent1']].rename(columns={'map1': 'Map Name', 'votes1': 'Votes', 'percent1': 'Percent'})
+    maps2 = df[['map2', 'votes2', 'percent2']].rename(columns={'map2': 'Map Name', 'votes2': 'Votes', 'percent2': 'Percent'})
+    maps3 = df[['map3', 'votes3', 'percent3']].rename(columns={'map3': 'Map Name', 'votes3': 'Votes', 'percent3': 'Percent'})
+
+    all_maps = pd.concat([maps, maps2, maps3], ignore_index=True)
+    
+    # Add map type column
+    all_maps['Map Type'] = all_maps['Map Name'].apply(lambda x: 'Control' if x in control_maps else
+                                                                'Escort' if x in escort_maps else
+                                                                'Flashpoint' if x in flashpoint_maps else
+                                                                'Hybrid' if x in hybrid_maps else
+                                                                'Push' if x in push_maps else
+                                                                'Unknown')
+
+    # Ensure correct types
+    all_maps['Votes'] = pd.to_numeric(all_maps['Votes'], errors='coerce')
+    all_maps['Percent'] = pd.to_numeric(all_maps['Percent'], errors='coerce')
+    all_maps = all_maps.dropna(subset=['Map Name', 'Votes', 'Percent'])
+
+    # Group and aggregate
+    summary = all_maps.groupby(['Map Name', 'Map Type']).agg(
+        Appearances=('Map Name', 'count'),
+        Total_Votes=('Votes', 'sum'),
+        Total_Percent_of_Votes=('Percent', 'sum')
+    ).reset_index()
+    
+    # Add columns votes per appearance and percent per appearance
+    summary['Votes_per_Appearance'] = summary['Total_Votes'] / summary['Appearances']
+    summary['Percent_per_Appearance'] = summary['Total_Percent_of_Votes'] / summary['Appearances']
+    
+    return summary
+    
+
 # Run on whitelisted data
-clean_vote_data('vote_data_whitelisted.csv', 'vote_data_whitelisted_cleaned.csv')
+if name == "__main__":
+    clean_vote_data('vote_data_whitelisted.csv', 'vote_data_whitelisted_cleaned.csv')

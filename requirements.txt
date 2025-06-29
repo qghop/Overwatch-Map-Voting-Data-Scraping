@@ -12,3 +12,4 @@ streamlink
 ffmpeg
 rapidfuzz
 streamlit
+plotly
