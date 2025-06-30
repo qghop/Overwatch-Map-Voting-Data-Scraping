@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-import clean
+import src.clean as clean
 
 # Load the cleaned data
 @st.cache_data

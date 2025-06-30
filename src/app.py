@@ -3,8 +3,8 @@ import csv
 from datetime import datetime, timezone
 import argparse
 
-import img_helper
-import twitch_helper
+import src.img_helper as img_helper
+import src.twitch_helper as twitch_helper
 
 template_fine_dir = 'templates_fine'
 template_coarse_dir = 'templates_coarse'
