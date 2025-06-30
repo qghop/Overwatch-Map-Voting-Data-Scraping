@@ -1,4 +1,3 @@
-from os import name
 import pandas as pd
 from rapidfuzz import fuzz, process
 
@@ -111,5 +110,6 @@ def summarize_vote_data(df):
     
 
 # Run on whitelisted data
-if name == "__main__":
+if __name__ == "__main__":
+    print("Hello!")
     clean_vote_data('vote_data_whitelisted.csv', 'vote_data_whitelisted_cleaned.csv')

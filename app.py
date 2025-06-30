@@ -35,8 +35,8 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
 parser.add_argument('--debug', type=str2bool, default=True, help="Enable debug mode")
 parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
-parser.add_argument('--start-date', type=str, default="2025-06-26", help="Start date in YYYY-MM-DD")
-parser.add_argument('--end-date', type=str, default="2025-06-28", help="End date in YYYY-MM-DD")
+parser.add_argument('--start-date', type=str, default="2025-06-29", help="Start date in YYYY-MM-DD")
+parser.add_argument('--end-date', type=str, default="2027-01-01", help="End date in YYYY-MM-DD")
 parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
 args = parser.parse_args()
 start_date = datetime.strptime(args.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -75,26 +75,26 @@ else:
 vods_triples = vods_triples[:vods_limit]
 print(f"{len(vods_triples)} Vods Found.")
 
-for user_name, url, created_at in vods_triples:
-    print(f"{user_name}: {url}, {created_at} has begun.")
+for idx, (user_name, url, created_at) in enumerate(vods_triples):
+    print(f"{idx + 1} / {len(vods_triples)}: {user_name}: {url}, {created_at} has begun.")
     # Get usable url
     m3u8_url = img_helper.get_m3u8_url(url)
     rows = []
     if not m3u8_url:
         print("Failed to get m3u8 url.")
         continue
-    
+
     rows = img_helper.process_frames(m3u8_url, template_hashes_fine, template_hashes_coarse, 
                                      output_dir, user_name, url, created_at, regions, debug=debug_mode)
     if not rows:
         print("No frames found.")
         continue
-    
+
     if run_whitelist:
         output_csv = whitelist_raw_csv_path
     else:
         output_csv = random_raw_csv_path
-    
+
     with open(output_csv, 'a', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=rows[0].keys())
         for row in rows:

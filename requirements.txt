@@ -4,8 +4,8 @@ Pillow
 ImageHash
 pandas
 easyocr
-torch
-torchvision
+torch # If NVIDIA GPU, install CUDA Toolkit and cuDNN first
+torchvision # pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 might be needed
 python-dotenv
 requests
 streamlink # Streamlink must be installed seperately, often comes with ffmpeg
