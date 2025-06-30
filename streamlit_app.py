@@ -17,15 +17,15 @@ st.set_page_config(layout="wide", page_title="Overwatch Map Voting Data", page_i
 # Table of contents
 st.sidebar.title("Views")
 st.sidebar.markdown("""
-[Title](#overwatch-map-voting-data)
-
 [Map Tier List](#map-tier-list-based-on-votes-per-appearance)
 
-[Bar Charts](#bar-charts)
+[Bar Charts, by Map](#bar-charts)
 
 [Votes by Card](#votes-by-card)
 
-[Scatter Plot](#scatter-plot)
+[Box Plot, Participation per Vote](#box-plot)
+
+[Appearances vs Total Votes](#appearances-vs-total-votes-per-map)
 
 [Map Data](#map-data)
 
@@ -115,12 +115,20 @@ with center:
 
 
     # --- BAR CHARTS ---
+    map_type_colors = {
+        "Control": "#1f77b4",
+        "Escort": "#ff7f0e",
+        "Flashpoint": "#2ca02c",
+        "Hybrid": "#d62728",
+        "Push": "#9467bd"
+    }
     st.subheader("Bar Charts")
     fig_votes_per_appearance = px.bar(
         df_maps.sort_values("Votes_per_Appearance", ascending=False),
         x="Map Name",
         y="Votes_per_Appearance",
         color="Map Type",
+        color_discrete_map=map_type_colors,
         title="Votes per Appearance per Map",
         labels={"Votes_per_Appearance": "Votes per Appearance", "Map Name": "Map"},
         height=500,
@@ -132,6 +140,7 @@ with center:
         x="Map Name",
         y="Percent_per_Appearance",
         color="Map Type",
+        color_discrete_map=map_type_colors,
         title="Percent of Votes per Appearance per Map",
         labels={"Percent_per_Appearance": "% of Votes per Appearance", "Map Name": "Map"},
         height=500,
@@ -143,23 +152,64 @@ with center:
         x="Map Name",
         y="Total_Votes",
         color="Map Type",
+        color_discrete_map=map_type_colors,
         title="Total Votes per Map",
         labels={"Total_Votes": "Total Votes", "Map Name": "Map"},
         height=500,
         category_orders={"Map Name": df_maps.sort_values("Total_Votes", ascending=False)["Map Name"].tolist()}
     )
     st.plotly_chart(fig_votes, use_container_width=True)
-    fig_percent = px.bar(
-        df_maps.sort_values("Total_Percent_of_Votes", ascending=False),
+    
+    # fig_percent = px.bar(
+    #     df_maps.sort_values("Total_Percent_of_Votes", ascending=False),
+    #     x="Map Name",
+    #     y="Total_Percent_of_Votes",
+    #     color="Map Type",
+    #     color_discrete_map=map_type_colors,
+    #     title="Total Vote Percent per Map",
+    #     labels={"Total_Percent_of_Votes": "Total % of Votes", "Map Name": "Map"},
+    #     height=500,
+    #     category_orders={"Map Name": df_maps.sort_values("Total_Percent_of_Votes", ascending=False)["Map Name"].tolist()}
+    # )
+    # st.plotly_chart(fig_percent, use_container_width=True)
+
+    df_wl['winner'] = df_wl.apply(lambda row: row['map1'] if row['votes1'] > row['votes2'] and row['votes1'] > row['votes3'] 
+                                  else (row['map2'] if row['votes2'] > row['votes1'] and row['votes2'] > row['votes3'] 
+                                        else (row['map3'] if row['votes3'] > row['votes1'] and row['votes3'] > row['votes2'] 
+                                              else 'draw')), axis=1)
+    win_counts = df_wl[df_wl['winner'] != 'draw']['winner'].value_counts()
+    df_maps['Total_Wins'] = df_maps['Map Name'].map(win_counts).fillna(0).astype(int)
+    df_maps['Win_Percentage'] = (df_maps['Total_Wins'] / df_maps['Appearances']).round(3)
+    fig_win_percentage = px.bar(
+        df_maps.sort_values("Win_Percentage", ascending=False),
         x="Map Name",
-        y="Total_Percent_of_Votes",
+        y="Win_Percentage",
         color="Map Type",
-        title="Total Vote Percent per Map",
-        labels={"Total_Percent_of_Votes": "Total % of Votes", "Map Name": "Map"},
+        color_discrete_map=map_type_colors,
+        title="Win Percentage (Gets the Majority of Votes) per Map",
+        labels={"Win_Percentage": "Win Percentage", "Map Name": "Map"},
         height=500,
-        category_orders={"Map Name": df_maps.sort_values("Total_Percent_of_Votes", ascending=False)["Map Name"].tolist()}
+        category_orders={"Map Name": df_maps.sort_values("Win_Percentage", ascending=False)["Map Name"].tolist()}
     )
-    st.plotly_chart(fig_percent, use_container_width=True)
+    st.plotly_chart(fig_win_percentage, use_container_width=True)
+    
+    # Scatterplot of winrate vs votes per appearance
+    # Commented out, not very interesting
+    # fig_winrate_vs_votes = px.scatter(
+    #     df_maps,
+    #     x="Votes_per_Appearance",
+    #     y="Win_Percentage",
+    #     color="Map Type",
+    #     color_discrete_map=map_type_colors,
+    #     title="Win Percentage vs Votes per Appearance per Map",
+    #     labels={"Votes_per_Appearance": "Votes per Appearance", "Win_Percentage": "Win Percentage"},
+    #     hover_data=["Map Name"],
+    #     height=500,
+    #     category_orders={"Map Name": df_maps.sort_values("Votes_per_Appearance", ascending=False)["Map Name"].tolist()}
+    # )
+    # fig_winrate_vs_votes.update_traces(marker=dict(size=10))
+    # st.plotly_chart(fig_winrate_vs_votes, use_container_width=True)
+    
 
     # --- VOTES BY CARD ---
     st.subheader("Votes by Card")
@@ -181,21 +231,40 @@ with center:
     st.plotly_chart(fig_votes_by_card, use_container_width=True)
 
     # --- BOX PLOT ---
-    # TODO Box plots of total votes per event, also show number of vote events safely logged
-    # Explain removing 0 and 1 vote scenarios (basically always just a bug in code), and the 9 0 0 caveat
-    # and then add to sidebar of course
-
-    # TODO would getting win% (majority votes wins, ties dont count) by map be interesting? win% of each mode, each map, bar chart that goes positive and negative
-
-    # TODO do I need to have better cacheing? i dont think so but
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("Box Plot")
+        st.write("Participation per Map Vote Event")
+        st.write(f"Total Number of Map Vote Events Logged: {len(df_wl)}")
+        st.write("""
+                Note that 0 and 1 vote scenarios have been removed from the dataset, 
+                as they are rare and more often than not come from errors in the data collection process.
+                
+                
+                Also note that vote events where all 10 players voted for the same map are often counted as just 9 votes due to 
+                the method of collecting.
+                """)
+    with c2:
+        fig_box_plot = px.box(
+            df_wl,
+            y='total_votes',
+            labels={'total_votes': 'Total Votes'},
+            height=450,
+            boxmode='overlay',
+            points='all',
+        )
+        fig_box_plot.update_traces(marker=dict(size=5, opacity=0.6, color='blue'))
+        fig_box_plot.update_layout(yaxis_title='Total Votes')
+        st.plotly_chart(fig_box_plot, use_container_width=True)
     
     # --- SCATTER PLOT, APPEARANCES VS VOTES --- 
-    st.subheader("Scatter Plot")
+    st.subheader("Appearances vs Total Votes per Map")
     fig_appearances_vs_votes = px.scatter(
         df_maps,
         x='Appearances',
         y='Total_Votes',
         color='Map Type',
+        color_discrete_map=map_type_colors,
         title='Appearances vs Total Votes per Map',
         labels={'Appearances': 'Appearances', 'Total_Votes': 'Total Votes'},
         hover_data=['Map Name'],
@@ -227,6 +296,8 @@ with center:
                 
                 The Tier List is split up based on an assumption of standard deviations. S Tier includes maps with total votes above the 84th Percentile, 
                 making them a full standard deviation away. A tier is above half a standard deviation, above the 69th percentile, and so on.
+                
+                Win Percentage is calculated by simple majority vote, rather than the actual selection by the game. Ties do not count as wins for any map.
                 
                 If you're a fan of this work, [follow me on twitter.](http://twitter.com/qghop_) Thanks! I'll try to keep it updated throughout the season.
                 """)
