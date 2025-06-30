@@ -88,6 +88,20 @@ def ocr_on_frame(pil_image, regions, reader, user_name, url, created_at, output_
     
     return row_data
 
+def get_vod_duration(m3u8_url):
+    try:
+        result = subprocess.run([
+            'ffprobe',
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            m3u8_url
+        ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        duration = float(result.stdout.strip())
+        return duration
+    except Exception as e:
+        print(f"Error retrieving VOD duration: {e}")
+        return float('inf')  # Fallback to very high limit
 
 # Find all frames that have map vote data, and perform ocr
 # Returns list of row data from vod info and OCR
@@ -107,6 +121,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
     coarse_match_time = 0  # Time to rewind to for fine-grained search
     found_rows = []
     one_coarse_match_found = False
+    vod_duration = get_vod_duration(m3u8_url)
 
     # Looping through different pipes
     while True:
@@ -270,10 +285,16 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                         print("Reached 90-minute no-match time limit. Exiting.")
                     raise EOFError
                 
+                # Break loop if after vod_duration (catch skipping past vod end)
+                if current_time >= vod_duration:
+                    if debug:
+                        print("Reached or passed end of VOD. Exiting.")
+                    break
+
                 # Break loop after 12 hours
                 if current_time >= 43200:
                     if debug:
-                        print("Reached 20-hour time limit. Exiting.")
+                        print("Reached 12hr time limit. Exiting.")
                     raise EOFError
 
                 # Print every 5 minutes in hours:minutes format

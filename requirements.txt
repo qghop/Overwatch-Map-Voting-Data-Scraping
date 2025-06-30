@@ -8,8 +8,8 @@ torch
 torchvision
 python-dotenv
 requests
-streamlink
-ffmpeg
+streamlink # Streamlink must be installed seperately, often comes with ffmpeg
+ffmpeg # ffmpeg must be installed seperately
 rapidfuzz
 streamlit
 plotly

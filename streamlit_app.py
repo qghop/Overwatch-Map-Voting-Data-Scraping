@@ -40,7 +40,7 @@ with center:
     # --- TITLE ---
     st.title("Overwatch Map Voting Data")
     st.write("Data on Map Voting in Grandmaster, NA + EMEA Lobbies, extracted from public Twitch VODs.")
-    st.write("Updated as of 2025-06-26.")
+    st.write("Updated as of 2025-06-28.")
 
     # --- TIER LIST ---
     map_image_filenames = {
@@ -179,6 +179,15 @@ with center:
         height=500
     )
     st.plotly_chart(fig_votes_by_card, use_container_width=True)
+
+    # --- BOX PLOT ---
+    # TODO Box plots of total votes per event, also show number of vote events safely logged
+    # Explain removing 0 and 1 vote scenarios (basically always just a bug in code), and the 9 0 0 caveat
+    # and then add to sidebar of course
+
+    # TODO would getting win% (majority votes wins, ties dont count) by map be interesting? win% of each mode, each map, bar chart that goes positive and negative
+
+    # TODO do I need to have better cacheing? i dont think so but
     
     # --- SCATTER PLOT, APPEARANCES VS VOTES --- 
     st.subheader("Scatter Plot")
@@ -207,14 +216,17 @@ with center:
     # --- METHODOLOGY ---
     st.subheader("Methodology")
     st.markdown("""
-                This project uses machine vision to automatically look through Twitch VODs for map voting data. 
+                This project uses machine vision to automatically look through Twitch VODs for map voting data, making use of OpenCV, EasyOCR, FFmpeg, and more.
                 
                 Note that this data has been limited to a selected whitelist of streamers selected for their generally high rank,
                 streams that mostly consist of competitive play (no stadium), and play in the english language, as those streams consistenly
-                gave data without wasting processing time.
+                gave data without wasting processing time. I've done work to make the existing data as accurate as possible, but I wouldn't be suprised
+                if I messed something up, so take this all with a grain of salt. For example, I think there's reasonable evidence that map appearances
+                are imbalanced in the actual game (higher chance of new maps, lower chance of getting a map commonly played) but a lot of that could
+                also be attributed to bad code and OCR bias, so the x/per appearances counts are more valuable. 
                 
                 The Tier List is split up based on an assumption of standard deviations. S Tier includes maps with total votes above the 84th Percentile, 
                 making them a full standard deviation away. A tier is above half a standard deviation, above the 69th percentile, and so on.
                 
-                If you're a fan of this work, [follow me on twitter.](http://twitter.com/qghop_) Thanks!
+                If you're a fan of this work, [follow me on twitter.](http://twitter.com/qghop_) Thanks! I'll try to keep it updated throughout the season.
                 """)
