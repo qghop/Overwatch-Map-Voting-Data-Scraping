@@ -17,3 +17,5 @@ and Streamlit and Plotly for front-end and data visualization.
 ## Requirements
 
 Python 3.12, FFmpeg and Streamlink (see requirements.txt)
+
+Run app.py to update raw data, and clean.py to clean the raw data. streamlit_app.py can be run locally with: streamlit run streamlit_app.py
