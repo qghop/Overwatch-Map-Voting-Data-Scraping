@@ -4,7 +4,7 @@ Using machine vision and public twitch vods to get info on map popularity.
 
 [Viewable on https://ow-map-voting-data.streamlit.app/](https://ow-map-voting-data.streamlit.app/)
 
-Uses OpenVS, Pillow, ImageHash, and EasyOCR for Image Processing, Pandas for handling Data,  
+Uses OpenCV, Pillow, ImageHash, and EasyOCR for Image Processing, Pandas for handling Data,  
 Streamlink and FFmpeg CLI, as well as the Twitch API, for Stream Processing, Rapidfuzz for OCR Cleaning,  
 and Streamlit and Plotly for front-end and data visualization.
 
