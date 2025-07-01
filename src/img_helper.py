@@ -292,7 +292,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                 if current_time >= vod_duration:
                     if debug:
                         print("Reached or passed end of VOD. Exiting.")
-                    break
+                    raise EOFError
 
                 # Break loop after 12 hours
                 if current_time >= 43200:
