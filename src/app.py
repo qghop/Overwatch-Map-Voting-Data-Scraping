@@ -3,8 +3,8 @@ import csv
 from datetime import datetime, timezone
 import argparse
 
-import src.img_helper as img_helper
-import src.twitch_helper as twitch_helper
+import img_helper as img_helper
+import twitch_helper as twitch_helper
 
 template_fine_dir = 'templates_fine'
 template_coarse_dir = 'templates_coarse'
@@ -35,7 +35,7 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
 parser.add_argument('--debug', type=str2bool, default=True, help="Enable debug mode")
 parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
-parser.add_argument('--start-date', type=str, default="2025-06-29", help="Start date in YYYY-MM-DD")
+parser.add_argument('--start-date', type=str, default="2025-06-30", help="Start date in YYYY-MM-DD")
 parser.add_argument('--end-date', type=str, default="2027-01-01", help="End date in YYYY-MM-DD")
 parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
 args = parser.parse_args()

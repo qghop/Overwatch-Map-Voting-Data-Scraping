@@ -158,7 +158,10 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
         frame_height = 720
         frame_size = frame_width * frame_height # * 3 if RGB
 
-        proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        try:
+            proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as e:
+            print(f"FFmpeg failed: {e}")
 
         try:
             fine_matches = []
