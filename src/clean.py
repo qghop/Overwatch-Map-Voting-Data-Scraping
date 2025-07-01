@@ -36,6 +36,10 @@ def clean_vote_data(input_file, output_file):
     column_names = ['user_name', 'url', 'created_at', 'map1', 'votes1', 'map2', 'votes2', 'map3', 'votes3']
     df = pd.read_csv(input_file, names=column_names, header=None)
 
+    # if any vote column is just "VOTE" add 1 to the front
+    for col in ['votes1', 'votes2', 'votes3']:
+        df[col] = df[col].apply(lambda x: '1' + str(x) if str(x) == 'VOTE' else x)
+
     # For votes columns, get the first character, and if it isnt a number, remove the whole row
     for col in ['votes1', 'votes2', 'votes3']:
         df[col] = df[col].apply(lambda x: x[0] if str(x)[0].isdigit() else None)
@@ -68,9 +72,30 @@ def clean_vote_data(input_file, output_file):
     df['percent1'] = df['votes1'].astype(int) / df['total_votes']
     df['percent2'] = df['votes2'].astype(int) / df['total_votes']
     df['percent3'] = df['votes3'].astype(int) / df['total_votes']
+
+    # Calculate winner (majority votes)
+    df['winner'] = df.apply(lambda row: row['map1'] if row['votes1'] > row['votes2'] and row['votes1'] > row['votes3'] 
+                            else (row['map2'] if row['votes2'] > row['votes1'] and row['votes2'] > row['votes3'] 
+                                else (row['map3'] if row['votes3'] > row['votes1'] and row['votes3'] > row['votes2'] 
+                                        else 'draw')), axis=1)
     
     df.to_csv(output_file, index=False)
     return df
+
+# Tiers based on half standard deviations
+def get_tier(p):
+    if p >= 0.84:
+        return "S"
+    elif p >= 0.69:
+        return "A"
+    elif p >= 0.5:
+        return "B"
+    elif p >= 0.31:
+        return "C"
+    elif p >= 0.16:
+        return "D"
+    else:
+        return "F"
 
 # Takes in cleaned_df (from clean_vote_data)
 # Returns Dataframe with columns Map Name, Appearances, Total Votes, Total Percent of Votes
@@ -105,11 +130,19 @@ def summarize_vote_data(df):
     # Add columns votes per appearance and percent per appearance
     summary['Votes_per_Appearance'] = summary['Total_Votes'] / summary['Appearances']
     summary['Percent_per_Appearance'] = summary['Total_Percent_of_Votes'] / summary['Appearances']
+
+    # Calculate tiers
+    percentiles = summary["Votes_per_Appearance"].rank(pct=True)
+    summary["Tier"] = percentiles.apply(get_tier)
+
+    # Count wins (based on majority votes)
+    win_counts = df[df['winner'] != 'draw']['winner'].value_counts()
+    summary['Total_Wins'] = summary['Map Name'].map(win_counts).fillna(0).astype(int)
+    summary['Win_Percentage'] = (summary['Total_Wins'] / summary['Appearances']).round(3)
     
     return summary
     
 
 # Run on whitelisted data
 if __name__ == "__main__":
-    print("Hello!")
     clean_vote_data('vote_data_whitelisted.csv', 'vote_data_whitelisted_cleaned.csv')

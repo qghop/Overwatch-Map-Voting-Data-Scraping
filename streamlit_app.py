@@ -40,7 +40,7 @@ with center:
     # --- TITLE ---
     st.title("Overwatch Map Voting Data")
     st.write("Data on Map Voting in Grandmaster, NA + EMEA Lobbies, extracted from public Twitch VODs.")
-    st.write("Updated as of 2025-06-28.")
+    st.write("Updated as of 2025-07-01.")
 
     # --- TIER LIST ---
     map_image_filenames = {
@@ -74,21 +74,6 @@ with center:
         "SURAVASA": "map_images/Suravasa.jpg",
         "WATCHPOINT: GIBRALTAR": "map_images/Watchpoint-gibraltar.jpg"
     }
-    percentiles = df_maps["Votes_per_Appearance"].rank(pct=True)
-    def get_tier(p):
-        if p >= 0.84:
-            return "S"
-        elif p >= 0.69:
-            return "A"
-        elif p >= 0.5:
-            return "B"
-        elif p >= 0.31:
-            return "C"
-        elif p >= 0.16:
-            return "D"
-        else:
-            return "F"
-    df_maps["Tier"] = percentiles.apply(get_tier)
     # Define a fixed number of columns per row
     columns_per_row = 6
     image_width = 100
@@ -101,7 +86,7 @@ with center:
             cols = st.columns(columns_per_row + 1)  # +1 for the tier label column
             if row_index == 0:
                 with cols[0]:
-                    st.markdown(f"### Tier {tier}")
+                    st.markdown(f"### {tier} Tier")
             else:
                 with cols[0]:
                     st.markdown(" ")  # empty to align with image rows
@@ -173,13 +158,6 @@ with center:
     # )
     # st.plotly_chart(fig_percent, use_container_width=True)
 
-    df_wl['winner'] = df_wl.apply(lambda row: row['map1'] if row['votes1'] > row['votes2'] and row['votes1'] > row['votes3'] 
-                                  else (row['map2'] if row['votes2'] > row['votes1'] and row['votes2'] > row['votes3'] 
-                                        else (row['map3'] if row['votes3'] > row['votes1'] and row['votes3'] > row['votes2'] 
-                                              else 'draw')), axis=1)
-    win_counts = df_wl[df_wl['winner'] != 'draw']['winner'].value_counts()
-    df_maps['Total_Wins'] = df_maps['Map Name'].map(win_counts).fillna(0).astype(int)
-    df_maps['Win_Percentage'] = (df_maps['Total_Wins'] / df_maps['Appearances']).round(3)
     fig_win_percentage = px.bar(
         df_maps.sort_values("Win_Percentage", ascending=False),
         x="Map Name",
@@ -212,6 +190,12 @@ with center:
     
 
     # --- VOTES BY CARD ---
+    card_color_map = {
+        'Left': "#d3301a",
+        'Middle': "#419b1e",
+        'Right': "#2b35b6"
+    }
+
     st.subheader("Votes by Card")
     df_votes_by_card = df_wl[['votes1', 'votes2', 'votes3']].sum().reset_index()
     df_votes_by_card.columns = ['Card', 'Votes']
@@ -226,23 +210,51 @@ with center:
         names='Card',
         title='Total Votes by Card',
         labels={'Votes': 'Total Votes', 'Card': 'Card'},
+        color='Card',
+        color_discrete_map=card_color_map,
         height=500
     )
     st.plotly_chart(fig_votes_by_card, use_container_width=True)
 
+    st.subheader("Vote Distribution per Card")
+    df_votes_long = df_wl[['votes1', 'votes2', 'votes3']].rename(columns={
+        'votes1': 'Left',
+        'votes2': 'Middle',
+        'votes3': 'Right'
+    }).melt(var_name='Card', value_name='Votes')
+    fig_votes_hist = px.histogram(
+        df_votes_long,
+        x='Votes',
+        color='Card',
+        nbins=11,
+        barmode='group',
+        category_orders={'Votes': list(range(0, 11))},
+        labels={'Votes': 'Votes per Event', 'Card': 'Card'},
+        title='Distribution of Votes per Card',
+        color_discrete_map=card_color_map,
+    )
+    fig_votes_hist.update_layout(
+        xaxis=dict(tickmode='linear', dtick=1),
+        yaxis_title='Frequency',
+        height=500
+    )
+    st.plotly_chart(fig_votes_hist, use_container_width=True)
+
+
     # --- BOX PLOT ---
+    # Box plot of total participation
     c1, c2 = st.columns(2)
     with c1:
         st.subheader("Box Plot")
-        st.write("Participation per Map Vote Event")
+        st.write("Total Participation per Map Vote Event")
         st.write(f"Total Number of Map Vote Events Logged: {len(df_wl)}")
         st.write("""
-                Note that 0 and 1 vote scenarios have been removed from the dataset, 
+                Note that 0 and 1 total vote scenarios have been removed from the dataset, 
                 as they are rare and more often than not come from errors in the data collection process.
                 
                 
-                Also note that vote events where all 10 players voted for the same map are often counted as just 9 votes due to 
-                the method of collecting.
+                Also note that vote events where all 10 players voted for the same map are counted as just 9 votes due to 
+                the method of collecting (very few, if any frames on screen show 0, 0, and 10 votes).
                 """)
     with c2:
         fig_box_plot = px.box(
@@ -301,3 +313,6 @@ with center:
                 
                 If you're a fan of this work, [follow me on twitter.](http://twitter.com/qghop_) Thanks! I'll try to keep it updated throughout the season.
                 """)
+
+
+# Reminder, run with streamlit run streamlit_app.py

@@ -46,22 +46,6 @@ def get_user_id(username):
     id = j['data'][0]['id']
     return id
 
-# Getting user IDs for whitelisted streamers
-# results = []
-# for username in whitelist_streamers:
-#     try:
-#         user_id = get_user_id(username)
-#         if user_id:
-#             results.append({'username': username, 'user_id': user_id})
-#         time.sleep(0.5)  # optional, to avoid rate limits
-#     except Exception as e:
-#         print(f"Error fetching {username}: {e}")
-
-# with open('whitelist.csv', 'w', newline='') as f:
-#     writer = csv.DictWriter(f, fieldnames=['username', 'user_id'])
-#     writer.writeheader()
-#     writer.writerows(results)
-
 
 # Returns list of (user_name, url, created_at) from the last 10 vods of user_id
 def vod_info_from_id(user_id):
@@ -134,3 +118,20 @@ def get_whitelist_overwatch_vods(csv_path, cutoff_start_date, cutoff_end_date):
             time.sleep(0.25)
 
     return vods
+
+# Getting user IDs for whitelisted streamers
+if __name__ == "__main__":
+    results = []
+    for username in whitelist_streamers:
+        try:
+            user_id = get_user_id(username)
+            if user_id:
+                results.append({'username': username, 'user_id': user_id})
+            time.sleep(0.5)  # optional, to avoid rate limits
+        except Exception as e:
+            print(f"Error fetching {username}: {e}")
+
+    with open('whitelist.csv', 'w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=['username', 'user_id'])
+        writer.writeheader()
+        writer.writerows(results)

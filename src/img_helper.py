@@ -109,11 +109,11 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
     reader = easyocr.Reader(['en'])
     
     skip_seconds_on_match = 60 * 13
-    coarse_hash_threshold = 15 # TODO might need changing based on stream quality(?), overlays(?), looks good for now
+    coarse_hash_threshold = 15
     fine_hash_threshold = 10 
-    default_frame_interval = 13 # TODO might miss extremely fast votes
+    default_frame_interval = 13
     fine_grained_frame_interval = .1 
-    frames_to_fine_grain_search = 25 / fine_grained_frame_interval # Map voting phase was at 20s, now 15 # TODO shorten for later
+    frames_to_fine_grain_search = 25 / fine_grained_frame_interval # Map voting phase was at 20s, now 15
     
     current_time = 0
     in_fine_mode = False
@@ -242,7 +242,8 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                                 best[2].save(match_path)
                             # TODO run OCR on all fine_matches? get best text, highest number of total votes?
                             row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at, output_dir, debug)
-                            for v in row.values(): print(v, end='\t')
+                            for v in row.values(): print(v, end=' - ')
+                            print()
                             found_rows.append(row)
                             current_time = coarse_match_time + best[0] * fine_grained_frame_interval + skip_seconds_on_match
                             del best
@@ -281,7 +282,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                     frame.close()
                     del frame
                 if frame_hash: del frame_hash
-                if frame_array: del frame_array
+                if frame_array.any(): del frame_array
                 if raw_frame: del raw_frame
                 
                 # Break loop after 90 minutes if no coarse match found
@@ -304,10 +305,10 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
 
                 # Print every 5 minutes in hours:minutes format
                 current_time = round(current_time, 2)
-                real_current_time = time.time()
-                real_elapsed_time = real_current_time - real_time_start
-                real_time_start = real_current_time
                 if debug and current_time % 300 < effective_interval:
+                    real_current_time = time.time()
+                    real_elapsed_time = real_current_time - real_time_start
+                    real_time_start = real_current_time
                     hours = int(current_time // 3600)
                     minutes = int((current_time % 3600) // 60)
                     print(f"Vod Progress: {hours:02d}:{minutes:02d}\t Step Took: {real_elapsed_time:.2f}s")
