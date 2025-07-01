@@ -122,6 +122,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
     found_rows = []
     one_coarse_match_found = False
     vod_duration = get_vod_duration(m3u8_url)
+    real_time_start = time.time()
 
     # Looping through different pipes
     while True:
@@ -241,7 +242,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                                 best[2].save(match_path)
                             # TODO run OCR on all fine_matches? get best text, highest number of total votes?
                             row = ocr_on_frame(best[2], regions, reader, user_name, url, created_at, output_dir, debug)
-                            print(row.values())
+                            for v in row.values(): print(v, end='\t')
                             found_rows.append(row)
                             current_time = coarse_match_time + best[0] * fine_grained_frame_interval + skip_seconds_on_match
                             del best
@@ -279,8 +280,9 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
                 if frame:
                     frame.close()
                     del frame
-                if frame_hash:
-                    del frame_hash
+                if frame_hash: del frame_hash
+                if frame_array: del frame_array
+                if raw_frame: del raw_frame
                 
                 # Break loop after 90 minutes if no coarse match found
                 if not one_coarse_match_found and current_time >= 5400:
@@ -302,10 +304,13 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
 
                 # Print every 5 minutes in hours:minutes format
                 current_time = round(current_time, 2)
+                real_current_time = time.time()
+                real_elapsed_time = real_current_time - real_time_start
+                real_time_start = real_current_time
                 if debug and current_time % 300 < effective_interval:
                     hours = int(current_time // 3600)
                     minutes = int((current_time % 3600) // 60)
-                    print(f"Current time: {hours:02d}:{minutes:02d} (hh:mm)")
+                    print(f"Vod Progress: {hours:02d}:{minutes:02d}\t Step Took: {real_elapsed_time:.2f}s")
 
         except EOFError:
             if debug:
@@ -315,6 +320,7 @@ def process_frames(m3u8_url, thashes_fine, thashes_coarse, output_dir, user_name
             print(f"Error: {e}")
             break
         finally:
+            gc.collect()
             if proc.stdout:
                 proc.stdout.close()
             proc.terminate()
