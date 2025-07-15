@@ -40,7 +40,7 @@ with center:
     # --- TITLE ---
     st.title("Overwatch Map Voting Data")
     st.write("Data on Map Voting in Grandmaster, NA + EMEA Lobbies, extracted from public Twitch VODs.")
-    st.write("Updated as of 2025-07-01.")
+    st.write("Updated as of 2025-07-14.")
 
     # --- TIER LIST ---
     map_image_filenames = {

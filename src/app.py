@@ -35,9 +35,9 @@ def str2bool(v):
 parser = argparse.ArgumentParser(description="Map Vote Data Script Configuration")
 parser.add_argument('--debug', type=str2bool, default=True, help="Enable debug mode")
 parser.add_argument('--whitelist', type=str2bool, default=True, help="Run on whitelisted streamers")
-parser.add_argument('--start-date', type=str, default="2025-07-02", help="Start date (Midnight UTC) in YYYY-MM-DD")
-parser.add_argument('--end-date', type=str, default="2025-07-04", help="End date (Midnight UTC) in YYYY-MM-DD")
-parser.add_argument('--vods-limit', type=int, default=100, help="Maximum number of VODs to process")
+parser.add_argument('--start-date', type=str, default="2025-07-04", help="Start date (Midnight UTC) in YYYY-MM-DD")
+parser.add_argument('--end-date', type=str, default="2025-07-14", help="End date (Midnight UTC) in YYYY-MM-DD")
+parser.add_argument('--vods-limit', type=int, default=500, help="Maximum number of VODs to process")
 args = parser.parse_args()
 start_date = datetime.strptime(args.start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
 end_date = datetime.strptime(args.end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
@@ -72,7 +72,7 @@ else:
     full_vod_info = twitch_helper.get_random_overwatch_vods()
     vods_triples = [(v['user_name'], v['url'], v['created_at']) for v in full_vod_info]
 
-vods_triples = vods_triples[:vods_limit]
+vods_triples = vods_triples[:vods_limit] # TODO make random order?
 print(f"{len(vods_triples)} Vods Found.")
 
 for idx, (user_name, url, created_at) in enumerate(vods_triples):
@@ -87,7 +87,7 @@ for idx, (user_name, url, created_at) in enumerate(vods_triples):
     rows = img_helper.process_frames(m3u8_url, template_hashes_fine, template_hashes_coarse, 
                                      output_dir, user_name, url, created_at, regions, debug=debug_mode)
     if not rows:
-        print("No frames found.")
+        print("No frames found.") # TODO Change to save vod url to csv so it isn't repeated
         continue
 
     if run_whitelist:
